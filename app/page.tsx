@@ -1190,23 +1190,29 @@ export default function Home() {
   };
 
   const stackedButtonRow: CSSProperties = {
-  ...buttonRow,
-  flexDirection: isMobile ? ("column" as CSSProperties["flexDirection"]) : ("row" as CSSProperties["flexDirection"]),
-  alignItems: isMobile ? ("stretch" as CSSProperties["alignItems"]) : ("center" as CSSProperties["alignItems"]),
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+  alignItems: isMobile ? "stretch" : "center",
+  flexDirection: isMobile ? "column" : "row",
 };
 
 
   const responsiveCheckboxRow: CSSProperties = {
-  ...checkboxRow,
-  flexDirection: isMobile ? ("column" as CSSProperties["flexDirection"]) : ("row" as CSSProperties["flexDirection"]),
-  alignItems: isMobile ? ("flex-start" as CSSProperties["alignItems"]) : ("center" as CSSProperties["alignItems"]),
+  display: "flex",
   gap: isMobile ? 10 : 16,
+  flexWrap: "wrap",
+  alignItems: isMobile ? "flex-start" : "center",
+  marginBottom: 12,
+  flexDirection: isMobile ? "column" : "row",
 };
 
   const responsiveCustomerHeader: CSSProperties = {
-  ...customerHeader,
-  flexDirection: isMobile ? ("column" as CSSProperties["flexDirection"]) : ("row" as CSSProperties["flexDirection"]),
-  alignItems: isMobile ? ("stretch" as CSSProperties["alignItems"]) : ("flex-start" as CSSProperties["alignItems"]),
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  flexDirection: isMobile ? "column" : "row",
+  alignItems: isMobile ? "stretch" : "flex-start",
 };
 
   const fullWidthBtn: CSSProperties = {
