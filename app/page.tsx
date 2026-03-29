@@ -1246,6 +1246,48 @@ const APP_PASSWORD = "0070";
   };
 
   if (!loaded) {
+  if (!unlocked) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+          <h1 className="text-2xl font-bold text-center mb-2">What Climate</h1>
+          <p className="text-sm text-gray-600 text-center mb-6">
+            Enter password to access the app
+          </p>
+
+          <input
+            type="password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (passwordInput === APP_PASSWORD) {
+                  setUnlocked(true);
+                } else {
+                  alert("Incorrect password");
+                }
+              }
+            }}
+            placeholder="Enter password"
+            className="w-full border rounded-lg px-4 py-3 mb-4"
+          />
+
+          <button
+            onClick={() => {
+              if (passwordInput === APP_PASSWORD) {
+                setUnlocked(true);
+              } else {
+                alert("Incorrect password");
+              }
+            }}
+            className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700"
+          >
+            Unlock App
+          </button>
+        </div>
+      </div>
+    );
+  }
     return (
       <div style={responsivePage}>
         <div style={responsiveContainer}>
