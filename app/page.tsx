@@ -1189,47 +1189,48 @@ export default function Home() {
     fontSize: 16,
   };
 
-  const stackedButtonRow = {
-    ...buttonRow,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "stretch" : "center",
-  };
+  const stackedButtonRow: CSSProperties = {
+  ...buttonRow,
+  flexDirection: isMobile ? ("column" as CSSProperties["flexDirection"]) : ("row" as CSSProperties["flexDirection"]),
+  alignItems: isMobile ? ("stretch" as CSSProperties["alignItems"]) : ("center" as CSSProperties["alignItems"]),
+};
 
-  const responsiveCheckboxRow = {
-    ...checkboxRow,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "flex-start" : "center",
-    gap: isMobile ? 10 : 16,
-  };
 
-  const responsiveCustomerHeader = {
-    ...customerHeader,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "stretch" : "flex-start",
-  };
+  const responsiveCheckboxRow: CSSProperties = {
+  ...checkboxRow,
+  flexDirection: isMobile ? ("column" as CSSProperties["flexDirection"]) : ("row" as CSSProperties["flexDirection"]),
+  alignItems: isMobile ? ("flex-start" as CSSProperties["alignItems"]) : ("center" as CSSProperties["alignItems"]),
+  gap: isMobile ? 10 : 16,
+};
 
-  const fullWidthBtn = {
-    ...btn,
-    width: isMobile ? "100%" : "auto",
-    textAlign: "center" as const,
-  };
+  const responsiveCustomerHeader: CSSProperties = {
+  ...customerHeader,
+  flexDirection: isMobile ? ("column" as CSSProperties["flexDirection"]) : ("row" as CSSProperties["flexDirection"]),
+  alignItems: isMobile ? ("stretch" as CSSProperties["alignItems"]) : ("flex-start" as CSSProperties["alignItems"]),
+};
 
-  const fullWidthBtnSecondary = {
-    ...btnSecondary,
-    width: isMobile ? "100%" : "auto",
-    textAlign: "center" as const,
-  };
+  const fullWidthBtn: CSSProperties = {
+  ...btn,
+  width: isMobile ? "100%" : "auto",
+  textAlign: "center",
+};
 
-  const fullWidthSmallBtn = {
-    ...smallBtn,
-    width: isMobile ? "100%" : "auto",
-    textAlign: "center" as const,
-  };
+  const fullWidthBtnSecondary: CSSProperties = {
+  ...btnSecondary,
+  width: isMobile ? "100%" : "auto",
+  textAlign: "center",
+};
 
-  const responsiveDeleteBtn = {
-    ...deleteBtn,
-    width: isMobile ? "100%" : "auto",
-  };
+  const fullWidthSmallBtn: CSSProperties = {
+  ...smallBtn,
+  width: isMobile ? "100%" : "auto",
+  textAlign: "center",
+};
+
+  const responsiveDeleteBtn: CSSProperties = {
+  ...deleteBtn,
+  width: isMobile ? "100%" : "auto",
+};
 
   const responsiveJobItem = {
     ...jobItem,
