@@ -1,0 +1,2873 @@
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+
+type Job = {
+  id: string;
+  text: string;
+  time: string;
+  done: boolean;
+  day: string;
+  customer: string;
+};
+
+type Unit = {
+  manufacturer: string;
+  model: string;
+  serial: string;
+  unitType: "Internal" | "External" | "";
+  refrigerantType: string;
+  refrigerantCharge: string;
+  location: string;
+  co2Equivalent: string;
+};
+
+type Customer = {
+  name: string;
+  address: string;
+  email: string;
+  phone: string;
+  serviceCost: string;
+  annualServiceDueDate: string;
+  units: Unit[];
+};
+
+type Quote = {
+  id: string;
+  customer: string;
+  customerEmail: string;
+  siteAddress: string;
+  description: string;
+  note: string;
+  amount: string;
+  vatRate: 0 | 20;
+  status: "Draft" | "Sent" | "Approved" | "Invoiced";
+  createdAt: string;
+};
+
+type QuotePreviewData = {
+  quoteNumber: string;
+  date: string;
+  preparedBy: string;
+  customerName: string;
+  siteAddress: string;
+  description: string;
+  note: string;
+  totalPrice: string;
+  vatRate: 0 | 20;
+};
+
+type QuoteDraft = {
+  quoteCustomer: string;
+  quoteDescription: string;
+  quoteNote: string;
+  quoteAmount: string;
+  quoteVatRate: 0 | 20;
+  quoteStatus: Quote["status"];
+  editingQuoteId: string | null;
+};
+
+type Invoice = {
+  id: string;
+  quoteId: string;
+  customer: string;
+  customerEmail: string;
+  siteAddress: string;
+  description: string;
+  createdAt: string;
+  status: "Unpaid" | "Paid";
+  invoiceVatRate: 0 | 20;
+  applyReverseVat: boolean;
+  applyCis: boolean;
+  subtotalAmount: string;
+  materialsAmount: string;
+  labourAmount: string;
+  cisDeductionAmount: string;
+  poNumber: string;
+  upgradedJobNumber: string;
+  paymentTerms: string;
+};
+
+type FGasUnitReport = {
+  id: string;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  location: string;
+  refrigerantType: string;
+  refrigerantCharge: string;
+  co2Equivalent: string;
+  leakCheckCompleted: string;
+  leakDetected: string;
+  refrigerantAdded: string;
+  refrigerantRecovered: string;
+  actionsTaken: string;
+  notes: string;
+};
+
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const MANUFACTURERS = [
+  "Daikin",
+  "Mitsubishi Electric",
+  "Mitsubishi Heavy Industries",
+  "Fujitsu",
+  "Panasonic",
+  "Midea",
+  "Hitachi",
+  "LG",
+  "Other",
+];
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const toNumber = (value: string) => Number(value || 0);
+
+const emptyUnit = (): Unit => ({
+  manufacturer: "",
+  model: "",
+  serial: "",
+  unitType: "",
+  refrigerantType: "",
+  refrigerantCharge: "",
+  location: "",
+  co2Equivalent: "",
+});
+
+const createFgasUnitReport = (unit: Unit): FGasUnitReport => ({
+  id: createId(),
+  manufacturer: unit.manufacturer,
+  model: unit.model,
+  serial: unit.serial,
+  location: unit.location,
+  refrigerantType: unit.refrigerantType,
+  refrigerantCharge: unit.refrigerantCharge,
+  co2Equivalent: unit.co2Equivalent,
+  leakCheckCompleted: "Yes",
+  leakDetected: "No",
+  refrigerantAdded: "",
+  refrigerantRecovered: "",
+  actionsTaken: "",
+  notes: "",
+});
+
+const formatMoney = (value: number) =>
+  `£${value.toLocaleString("en-GB", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+
+const getInvoiceValues = (invoice: Invoice) => {
+  const subtotal = invoice.applyCis
+    ? toNumber(invoice.materialsAmount) + toNumber(invoice.labourAmount)
+    : toNumber(invoice.subtotalAmount);
+
+  const vat =
+    invoice.applyReverseVat || invoice.invoiceVatRate === 0
+      ? 0
+      : subtotal * 0.2;
+
+  const cisDeduction = invoice.applyCis
+    ? toNumber(invoice.cisDeductionAmount)
+    : 0;
+
+  const total = subtotal + vat - cisDeduction;
+
+  return { subtotal, vat, cisDeduction, total };
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+export default function Home() {
+  const [selectedDay, setSelectedDay] = useState("Monday");
+  const [activeSection, setActiveSection] = useState<
+    "jobs" | "customers" | "quotes" | "invoices" | "fgas"
+  >("jobs");
+
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobText, setJobText] = useState("");
+  const [jobTime, setJobTime] = useState("");
+  const [jobCustomer, setJobCustomer] = useState("");
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedLetter, setSelectedLetter] = useState("All");
+
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [serviceCost, setServiceCost] = useState("");
+  const [annualServiceDueDate, setAnnualServiceDueDate] = useState("");
+  const [units, setUnits] = useState<Unit[]>([emptyUnit()]);
+  const [editingCustomerName, setEditingCustomerName] = useState<string | null>(
+    null
+  );
+
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quoteCustomer, setQuoteCustomer] = useState("");
+  const [quoteDescription, setQuoteDescription] = useState("");
+  const [quoteNote, setQuoteNote] = useState("Please note:");
+  const [quoteAmount, setQuoteAmount] = useState("");
+  const [quoteVatRate, setQuoteVatRate] = useState<0 | 20>(20);
+  const [quoteStatus, setQuoteStatus] = useState<Quote["status"]>("Draft");
+  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
+
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoiceCustomer, setInvoiceCustomer] = useState("");
+  const [invoiceDescription, setInvoiceDescription] = useState("");
+  const [invoiceVatRate, setInvoiceVatRate] = useState<0 | 20>(20);
+  const [invoiceApplyReverseVat, setInvoiceApplyReverseVat] = useState(false);
+  const [invoiceApplyCis, setInvoiceApplyCis] = useState(false);
+  const [invoiceSubtotalAmount, setInvoiceSubtotalAmount] = useState("");
+  const [invoiceMaterialsAmount, setInvoiceMaterialsAmount] = useState("");
+  const [invoiceLabourAmount, setInvoiceLabourAmount] = useState("");
+  const [invoiceCisDeductionAmount, setInvoiceCisDeductionAmount] = useState("");
+  const [invoicePoNumber, setInvoicePoNumber] = useState("");
+  const [invoiceUpgradedJobNumber, setInvoiceUpgradedJobNumber] = useState("");
+  const [invoicePaymentTerms, setInvoicePaymentTerms] = useState("30 Days");
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+
+  const [fgasCustomer, setFgasCustomer] = useState("");
+  const [fgasReportDate, setFgasReportDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
+  const [fgasEngineerName, setFgasEngineerName] = useState("");
+  const [fgasEngineerCertificate, setFgasEngineerCertificate] = useState("");
+  const [fgasCompanyCertificate, setFgasCompanyCertificate] = useState("");
+  const [fgasVisitNotes, setFgasVisitNotes] = useState("");
+  const [fgasLeakCheckResult, setFgasLeakCheckResult] = useState("No leaks found");
+  const [fgasWorkCarriedOut, setFgasWorkCarriedOut] = useState("");
+  const [fgasUnitReports, setFgasUnitReports] = useState<FGasUnitReport[]>([]);
+
+  const [pendingDeleteJobId, setPendingDeleteJobId] = useState<string | null>(null);
+  const [pendingDeleteCustomerName, setPendingDeleteCustomerName] = useState<string | null>(null);
+  const [pendingDeleteQuoteId, setPendingDeleteQuoteId] = useState<string | null>(null);
+  const [pendingDeleteInvoiceId, setPendingDeleteInvoiceId] = useState<string | null>(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  const customersSectionRef = useRef<HTMLElement | null>(null);
+  const quotesSectionRef = useRef<HTMLElement | null>(null);
+  const invoicesSectionRef = useRef<HTMLElement | null>(null);
+  const fgasSectionRef = useRef<HTMLElement | null>(null);
+
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const savedJobs = localStorage.getItem("what-climate-jobs");
+      const savedCustomers = localStorage.getItem("what-climate-customers");
+      const savedQuotes = localStorage.getItem("what-climate-quotes");
+      const savedInvoices = localStorage.getItem("what-climate-invoices");
+      const savedQuoteDraft = localStorage.getItem("what-climate-quote-draft");
+
+      if (savedJobs) setJobs(JSON.parse(savedJobs));
+      if (savedCustomers) setCustomers(JSON.parse(savedCustomers));
+      if (savedQuotes) setQuotes(JSON.parse(savedQuotes));
+      if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+
+      if (savedQuoteDraft) {
+        const parsedDraft: QuoteDraft = JSON.parse(savedQuoteDraft);
+        setQuoteCustomer(parsedDraft.quoteCustomer || "");
+        setQuoteDescription(parsedDraft.quoteDescription || "");
+        setQuoteNote(parsedDraft.quoteNote || "Please note:");
+        setQuoteAmount(parsedDraft.quoteAmount || "");
+        setQuoteVatRate(parsedDraft.quoteVatRate ?? 20);
+        setQuoteStatus(parsedDraft.quoteStatus || "Draft");
+        setEditingQuoteId(parsedDraft.editingQuoteId || null);
+
+        if (
+          parsedDraft.quoteCustomer ||
+          parsedDraft.quoteDescription ||
+          parsedDraft.quoteAmount ||
+          parsedDraft.editingQuoteId
+        ) {
+          setActiveSection("quotes");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load saved data", error);
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem("what-climate-jobs", JSON.stringify(jobs));
+  }, [jobs, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem("what-climate-customers", JSON.stringify(customers));
+  }, [customers, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem("what-climate-quotes", JSON.stringify(quotes));
+  }, [quotes, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem("what-climate-invoices", JSON.stringify(invoices));
+  }, [invoices, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    const quoteDraft: QuoteDraft = {
+      quoteCustomer,
+      quoteDescription,
+      quoteNote,
+      quoteAmount,
+      quoteVatRate,
+      quoteStatus,
+      editingQuoteId,
+    };
+
+    localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
+  }, [
+    loaded,
+    quoteCustomer,
+    quoteDescription,
+    quoteNote,
+    quoteAmount,
+    quoteVatRate,
+    quoteStatus,
+    editingQuoteId,
+  ]);
+
+  useEffect(() => {
+    if (invoiceApplyReverseVat) {
+      setInvoiceVatRate(0);
+    }
+  }, [invoiceApplyReverseVat]);
+
+  const sortedCustomers = useMemo(() => {
+    return customers.slice().sort((a, b) => a.name.localeCompare(b.name));
+  }, [customers]);
+
+  const selectedFgasCustomer = useMemo(() => {
+    return customers.find((customer) => customer.name === fgasCustomer) || null;
+  }, [customers, fgasCustomer]);
+
+  useEffect(() => {
+    if (!selectedFgasCustomer) {
+      setFgasUnitReports([]);
+      return;
+    }
+
+    const externalUnits = selectedFgasCustomer.units.filter(
+      (unit) => unit.unitType === "External"
+    );
+
+    setFgasUnitReports(externalUnits.map(createFgasUnitReport));
+  }, [selectedFgasCustomer]);
+
+  const getNextQuoteId = () => {
+    const lastNumber = quotes.length
+      ? Math.max(
+          ...quotes.map((quote) => {
+            const numericPart = Number(quote.id.replace("Q-", ""));
+            return Number.isNaN(numericPart) ? 0 : numericPart;
+          })
+        )
+      : 0;
+
+    return `Q-${String(lastNumber + 1).padStart(3, "0")}`;
+  };
+
+  const getNextInvoiceId = () => {
+    const lastNumber = invoices.length
+      ? Math.max(
+          ...invoices.map((inv) => {
+            const numericPart = Number(inv.id.replace("INV-", ""));
+            return Number.isNaN(numericPart) ? 0 : numericPart;
+          })
+        )
+      : 0;
+
+    return `INV-${String(lastNumber + 1).padStart(3, "0")}`;
+  };
+
+  const resetCustomerForm = () => {
+    setName("");
+    setAddress("");
+    setEmail("");
+    setPhone("");
+    setServiceCost("");
+    setAnnualServiceDueDate("");
+    setUnits([emptyUnit()]);
+    setEditingCustomerName(null);
+  };
+
+  const resetQuoteForm = () => {
+    setQuoteCustomer("");
+    setQuoteDescription("");
+    setQuoteNote("Please note:");
+    setQuoteAmount("");
+    setQuoteVatRate(20);
+    setQuoteStatus("Draft");
+    setEditingQuoteId(null);
+    localStorage.removeItem("what-climate-quote-draft");
+  };
+
+  const resetInvoiceForm = () => {
+    setInvoiceCustomer("");
+    setInvoiceDescription("");
+    setInvoiceVatRate(20);
+    setInvoiceApplyReverseVat(false);
+    setInvoiceApplyCis(false);
+    setInvoiceSubtotalAmount("");
+    setInvoiceMaterialsAmount("");
+    setInvoiceLabourAmount("");
+    setInvoiceCisDeductionAmount("");
+    setInvoicePoNumber("");
+    setInvoiceUpgradedJobNumber("");
+    setInvoicePaymentTerms("30 Days");
+    setEditingInvoiceId(null);
+  };
+
+  const serviceDueCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      if (!customer.annualServiceDueDate) return false;
+
+      const dueDate = new Date(customer.annualServiceDueDate);
+      const today = new Date();
+      const in30Days = new Date();
+      in30Days.setDate(today.getDate() + 30);
+
+      return dueDate <= in30Days;
+    });
+  }, [customers]);
+
+  const filteredJobs = useMemo(() => {
+    return jobs
+      .filter((job) => job.day === selectedDay)
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }, [jobs, selectedDay]);
+
+  const visibleCustomers = useMemo(() => {
+    return customers
+      .filter((customer) => {
+        const q = customerSearch.toLowerCase();
+        const matchesSearch =
+          customer.name.toLowerCase().includes(q) ||
+          customer.address.toLowerCase().includes(q) ||
+          customer.phone.toLowerCase().includes(q) ||
+          customer.email.toLowerCase().includes(q);
+
+        const firstLetter = customer.name.charAt(0).toUpperCase();
+        const matchesLetter =
+          selectedLetter === "All" || firstLetter === selectedLetter;
+
+        return matchesSearch && matchesLetter;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [customers, customerSearch, selectedLetter]);
+
+  const todaysCompleted = useMemo(
+    () => filteredJobs.filter((job) => job.done).length,
+    [filteredJobs]
+  );
+  const todaysTotal = filteredJobs.length;
+
+  const invoiceValue = useMemo(() => {
+    return invoices.reduce(
+      (sum, invoice) => sum + getInvoiceValues(invoice).total,
+      0
+    );
+  }, [invoices]);
+
+  const previewQuote = () => {
+    const matchedCustomer = customers.find((c) => c.name === quoteCustomer);
+
+    const quoteNumber = editingQuoteId
+      ? editingQuoteId.replace("Q-", "")
+      : String(quotes.length + 1).padStart(2, "0");
+
+    const quote: QuotePreviewData = {
+      quoteNumber,
+      date: new Date().toLocaleDateString("en-GB"),
+      preparedBy: "Luke Page",
+      customerName: quoteCustomer || "No customer selected",
+      siteAddress: matchedCustomer?.address || "No site address",
+      description: quoteDescription || "No description",
+      note: quoteNote || "Please note:",
+      totalPrice: quoteAmount || "0",
+      vatRate: quoteVatRate,
+    };
+
+    const quoteDraft: QuoteDraft = {
+      quoteCustomer,
+      quoteDescription,
+      quoteNote,
+      quoteAmount,
+      quoteVatRate,
+      quoteStatus,
+      editingQuoteId,
+    };
+
+    localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
+    localStorage.setItem("what-climate-current-quote", JSON.stringify(quote));
+    window.location.href = "/quotes/preview";
+  };
+
+  const previewSavedQuote = (quote: Quote) => {
+    const previewData: QuotePreviewData = {
+      quoteNumber: quote.id.replace("Q-", ""),
+      date: quote.createdAt,
+      preparedBy: "Luke Page",
+      customerName: quote.customer,
+      siteAddress: quote.siteAddress || "No site address",
+      description: quote.description,
+      note: quote.note || "",
+      totalPrice: quote.amount,
+      vatRate: quote.vatRate,
+    };
+
+    localStorage.setItem(
+      "what-climate-current-quote",
+      JSON.stringify(previewData)
+    );
+    window.location.href = "/quotes/preview";
+  };
+
+  const previewInvoice = (invoice: Invoice) => {
+    localStorage.setItem(
+      "what-climate-current-invoice",
+      JSON.stringify(invoice)
+    );
+    window.location.href = "/invoices/preview";
+  };
+
+  const updateFgasUnitReport = (
+    index: number,
+    field: keyof FGasUnitReport,
+    value: string
+  ) => {
+    setFgasUnitReports((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const saveFgasPdf = () => {
+    if (!selectedFgasCustomer) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>F-Gas Report - ${escapeHtml(selectedFgasCustomer.name)}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 24px;
+              color: #111;
+            }
+            h1 {
+              margin: 0 0 16px 0;
+              font-size: 28px;
+            }
+            h2 {
+              margin: 24px 0 12px 0;
+              font-size: 18px;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 10px 16px;
+              margin-bottom: 16px;
+            }
+            .box {
+              border: 1px solid #ddd;
+              border-radius: 10px;
+              padding: 12px;
+              margin-bottom: 12px;
+              page-break-inside: avoid;
+            }
+            .text-box {
+              border: 1px solid #ddd;
+              border-radius: 10px;
+              padding: 12px;
+              min-height: 50px;
+              white-space: pre-wrap;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>F-Gas Inspection Report</h1>
+
+          <div class="grid">
+            <div><strong>Customer:</strong> ${escapeHtml(selectedFgasCustomer.name)}</div>
+            <div><strong>Report Date:</strong> ${escapeHtml(fgasReportDate || "Not set")}</div>
+            <div><strong>Address:</strong> ${escapeHtml(selectedFgasCustomer.address || "Not set")}</div>
+            <div><strong>Email:</strong> ${escapeHtml(selectedFgasCustomer.email || "Not set")}</div>
+            <div><strong>Phone:</strong> ${escapeHtml(selectedFgasCustomer.phone || "Not set")}</div>
+            <div><strong>Engineer:</strong> ${escapeHtml(fgasEngineerName || "Not set")}</div>
+            <div><strong>Engineer Cert:</strong> ${escapeHtml(fgasEngineerCertificate || "Not set")}</div>
+            <div><strong>Company Cert:</strong> ${escapeHtml(fgasCompanyCertificate || "Not set")}</div>
+            <div><strong>Overall Leak Check Result:</strong> ${escapeHtml(fgasLeakCheckResult || "Not set")}</div>
+          </div>
+
+          <h2>Work Carried Out</h2>
+          <div class="text-box">${escapeHtml(fgasWorkCarriedOut || "No work recorded.")}</div>
+
+          <h2>Visit Notes</h2>
+          <div class="text-box">${escapeHtml(fgasVisitNotes || "No notes recorded.")}</div>
+
+          <h2>System Register</h2>
+          ${
+            fgasUnitReports.length === 0
+              ? `<div class="text-box">No external units found for this customer.</div>`
+              : fgasUnitReports
+                  .map(
+                    (unit, index) => `
+                    <div class="box">
+                      <div><strong>System ${index + 1}</strong></div>
+                      <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
+                      <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
+                      <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
+                      <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
+                      <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
+                      <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
+                      <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
+                      <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
+                      <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
+                      <div><strong>Refrigerant Added:</strong> ${escapeHtml(unit.refrigerantAdded || "0")} kg</div>
+                      <div><strong>Refrigerant Recovered:</strong> ${escapeHtml(unit.refrigerantRecovered || "0")} kg</div>
+                      <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
+                      <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
+                    </div>
+                  `
+                  )
+                  .join("")
+          }
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) return;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+    }, 300);
+  };
+
+  const openFgasForCustomer = (customerName: string) => {
+    setFgasCustomer(customerName);
+    setActiveSection("fgas");
+
+    requestAnimationFrame(() => {
+      fgasSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const addJob = () => {
+    if (!jobText.trim()) return;
+
+    const newJob: Job = {
+      id: createId(),
+      text: jobText,
+      time: jobTime,
+      done: false,
+      day: selectedDay,
+      customer: jobCustomer,
+    };
+
+    setJobs((prev) => [...prev, newJob]);
+    setJobText("");
+    setJobTime("");
+    setJobCustomer("");
+    setActiveSection("jobs");
+  };
+
+  const toggleJob = (id: string) => {
+    setJobs((prev) =>
+      prev.map((job) => (job.id === id ? { ...job, done: !job.done } : job))
+    );
+  };
+
+  const deleteJob = (id: string) => {
+    setJobs((prev) => prev.filter((job) => job.id !== id));
+    setPendingDeleteJobId(null);
+  };
+
+  const addUnit = () => {
+    setUnits((prev) => [...prev, emptyUnit()]);
+  };
+
+  const removeUnit = (index: number) => {
+    setUnits((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateUnit = (index: number, field: keyof Unit, value: string) => {
+    setUnits((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const saveCustomer = () => {
+    if (!name.trim()) return;
+
+    const cleanedUnits = units.filter(
+      (u) =>
+        u.manufacturer ||
+        u.model ||
+        u.serial ||
+        u.unitType ||
+        u.refrigerantType ||
+        u.refrigerantCharge ||
+        u.location ||
+        u.co2Equivalent
+    );
+
+    const customerData: Customer = {
+      name,
+      address,
+      email,
+      phone,
+      serviceCost,
+      annualServiceDueDate,
+      units: cleanedUnits,
+    };
+
+    if (editingCustomerName) {
+      setCustomers((prev) =>
+        prev.map((customer) =>
+          customer.name === editingCustomerName ? customerData : customer
+        )
+      );
+
+      if (editingCustomerName !== name) {
+        setJobs((prev) =>
+          prev.map((job) =>
+            job.customer === editingCustomerName ? { ...job, customer: name } : job
+          )
+        );
+
+        setQuotes((prev) =>
+          prev.map((quote) =>
+            quote.customer === editingCustomerName
+              ? {
+                  ...quote,
+                  customer: name,
+                  customerEmail: email,
+                  siteAddress: address,
+                }
+              : quote
+          )
+        );
+
+        setInvoices((prev) =>
+          prev.map((invoice) =>
+            invoice.customer === editingCustomerName
+              ? {
+                  ...invoice,
+                  customer: name,
+                  customerEmail: email,
+                  siteAddress: address,
+                }
+              : invoice
+          )
+        );
+
+        if (fgasCustomer === editingCustomerName) {
+          setFgasCustomer(name);
+        }
+      } else {
+        setQuotes((prev) =>
+          prev.map((quote) =>
+            quote.customer === name
+              ? {
+                  ...quote,
+                  customerEmail: email,
+                  siteAddress: address,
+                }
+              : quote
+          )
+        );
+
+        setInvoices((prev) =>
+          prev.map((invoice) =>
+            invoice.customer === name
+              ? {
+                  ...invoice,
+                  customerEmail: email,
+                  siteAddress: address,
+                }
+              : invoice
+          )
+        );
+      }
+    } else {
+      setCustomers((prev) => [...prev, customerData]);
+    }
+
+    resetCustomerForm();
+    setActiveSection("customers");
+  };
+
+  const startEditCustomer = (customer: Customer) => {
+    setEditingCustomerName(customer.name);
+    setName(customer.name);
+    setAddress(customer.address);
+    setEmail(customer.email);
+    setPhone(customer.phone);
+    setServiceCost(customer.serviceCost);
+    setAnnualServiceDueDate(customer.annualServiceDueDate);
+    setUnits(
+      customer.units.length
+        ? customer.units.map((unit) => ({ ...unit }))
+        : [emptyUnit()]
+    );
+    setActiveSection("customers");
+
+    requestAnimationFrame(() => {
+      customersSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const deleteCustomer = (customerName: string) => {
+    setCustomers((prev) =>
+      prev.filter((customer) => customer.name !== customerName)
+    );
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.customer === customerName ? { ...job, customer: "" } : job
+      )
+    );
+    setQuotes((prev) =>
+      prev.filter((quote) => quote.customer !== customerName)
+    );
+    setInvoices((prev) =>
+      prev.filter((invoice) => invoice.customer !== customerName)
+    );
+
+    if (editingCustomerName === customerName) {
+      resetCustomerForm();
+    }
+
+    if (fgasCustomer === customerName) {
+      setFgasCustomer("");
+    }
+
+    setPendingDeleteCustomerName(null);
+  };
+
+  const saveQuote = () => {
+    if (!quoteCustomer.trim() || !quoteDescription.trim() || !quoteAmount.trim()) {
+      return;
+    }
+
+    const matchedCustomer = customers.find((c) => c.name === quoteCustomer);
+
+    if (editingQuoteId) {
+      setQuotes((prev) =>
+        prev.map((quote) =>
+          quote.id === editingQuoteId
+            ? {
+                ...quote,
+                customer: quoteCustomer,
+                customerEmail: matchedCustomer?.email || "",
+                siteAddress: matchedCustomer?.address || "",
+                description: quoteDescription,
+                note: quoteNote,
+                amount: quoteAmount,
+                vatRate: quoteVatRate,
+                status: quoteStatus,
+              }
+            : quote
+        )
+      );
+    } else {
+      const newQuote: Quote = {
+        id: getNextQuoteId(),
+        customer: quoteCustomer,
+        customerEmail: matchedCustomer?.email || "",
+        siteAddress: matchedCustomer?.address || "",
+        description: quoteDescription,
+        note: quoteNote,
+        amount: quoteAmount,
+        vatRate: quoteVatRate,
+        status: quoteStatus,
+        createdAt: new Date().toLocaleDateString("en-GB"),
+      };
+
+      setQuotes((prev) => [newQuote, ...prev]);
+    }
+
+    resetQuoteForm();
+    setActiveSection("quotes");
+  };
+
+  const startEditQuote = (quote: Quote) => {
+    setEditingQuoteId(quote.id);
+    setQuoteCustomer(quote.customer);
+    setQuoteDescription(quote.description);
+    setQuoteNote(quote.note);
+    setQuoteAmount(quote.amount);
+    setQuoteVatRate(quote.vatRate);
+    setQuoteStatus(quote.status);
+    setActiveSection("quotes");
+
+    requestAnimationFrame(() => {
+      quotesSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const updateQuoteStatus = (id: string, status: Quote["status"]) => {
+    setQuotes((prev) =>
+      prev.map((quote) => (quote.id === id ? { ...quote, status } : quote))
+    );
+  };
+
+  const deleteQuote = (id: string) => {
+    setQuotes((prev) => prev.filter((quote) => quote.id !== id));
+    if (editingQuoteId === id) {
+      resetQuoteForm();
+    }
+    setPendingDeleteQuoteId(null);
+  };
+
+  const saveInvoice = () => {
+    if (!invoiceCustomer.trim() || !invoiceDescription.trim()) return;
+
+    const matchedCustomer = customers.find((c) => c.name === invoiceCustomer);
+
+    if (editingInvoiceId) {
+      setInvoices((prev) =>
+        prev.map((invoice) =>
+          invoice.id === editingInvoiceId
+            ? {
+                ...invoice,
+                customer: invoiceCustomer,
+                customerEmail: matchedCustomer?.email || "",
+                siteAddress: matchedCustomer?.address || "",
+                description: invoiceDescription,
+                invoiceVatRate,
+                applyReverseVat: invoiceApplyReverseVat,
+                applyCis: invoiceApplyCis,
+                subtotalAmount: invoiceSubtotalAmount,
+                materialsAmount: invoiceMaterialsAmount,
+                labourAmount: invoiceLabourAmount,
+                cisDeductionAmount: invoiceCisDeductionAmount,
+                poNumber: invoicePoNumber,
+                upgradedJobNumber: invoiceUpgradedJobNumber,
+                paymentTerms: invoicePaymentTerms,
+              }
+            : invoice
+        )
+      );
+    } else {
+      const newInvoiceId = getNextInvoiceId();
+
+      const newInvoice: Invoice = {
+        id: newInvoiceId,
+        quoteId: "",
+        customer: invoiceCustomer,
+        customerEmail: matchedCustomer?.email || "",
+        siteAddress: matchedCustomer?.address || "",
+        description: invoiceDescription,
+        createdAt: new Date().toLocaleDateString("en-GB"),
+        status: "Unpaid",
+        invoiceVatRate,
+        applyReverseVat: invoiceApplyReverseVat,
+        applyCis: invoiceApplyCis,
+        subtotalAmount: invoiceSubtotalAmount,
+        materialsAmount: invoiceMaterialsAmount,
+        labourAmount: invoiceLabourAmount,
+        cisDeductionAmount: invoiceCisDeductionAmount,
+        poNumber: invoicePoNumber,
+        upgradedJobNumber: invoiceUpgradedJobNumber,
+        paymentTerms: invoicePaymentTerms,
+      };
+
+      setInvoices((prev) => [newInvoice, ...prev]);
+    }
+
+    resetInvoiceForm();
+    setActiveSection("invoices");
+  };
+
+  const startEditInvoice = (invoice: Invoice) => {
+    setEditingInvoiceId(invoice.id);
+    setInvoiceCustomer(invoice.customer);
+    setInvoiceDescription(invoice.description);
+    setInvoiceVatRate(invoice.invoiceVatRate);
+    setInvoiceApplyReverseVat(invoice.applyReverseVat);
+    setInvoiceApplyCis(invoice.applyCis);
+    setInvoiceSubtotalAmount(invoice.subtotalAmount);
+    setInvoiceMaterialsAmount(invoice.materialsAmount);
+    setInvoiceLabourAmount(invoice.labourAmount);
+    setInvoiceCisDeductionAmount(invoice.cisDeductionAmount);
+    setInvoicePoNumber(invoice.poNumber);
+    setInvoiceUpgradedJobNumber(invoice.upgradedJobNumber);
+    setInvoicePaymentTerms(invoice.paymentTerms);
+    setActiveSection("invoices");
+
+    requestAnimationFrame(() => {
+      invoicesSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const convertQuoteToInvoice = (quote: Quote) => {
+    const existingInvoice = invoices.find(
+      (invoice) => invoice.quoteId === quote.id
+    );
+    if (existingInvoice) return;
+
+    const newInvoiceId = getNextInvoiceId();
+
+    const newInvoice: Invoice = {
+      id: newInvoiceId,
+      quoteId: quote.id,
+      customer: quote.customer,
+      customerEmail: quote.customerEmail,
+      siteAddress: quote.siteAddress,
+      description: quote.description,
+      createdAt: new Date().toLocaleDateString("en-GB"),
+      status: "Unpaid",
+      invoiceVatRate: quote.vatRate,
+      applyReverseVat: false,
+      applyCis: false,
+      subtotalAmount: quote.amount,
+      materialsAmount: "",
+      labourAmount: "",
+      cisDeductionAmount: "",
+      poNumber: "",
+      upgradedJobNumber: "",
+      paymentTerms: "30 Days",
+    };
+
+    setInvoices((prev) => [newInvoice, ...prev]);
+    setQuotes((prev) =>
+      prev.map((q) => (q.id === quote.id ? { ...q, status: "Invoiced" } : q))
+    );
+    setActiveSection("invoices");
+  };
+
+  const toggleInvoicePaid = (id: string) => {
+    setInvoices((prev) =>
+      prev.map((invoice) =>
+        invoice.id === id
+          ? {
+              ...invoice,
+              status: invoice.status === "Paid" ? "Unpaid" : "Paid",
+            }
+          : invoice
+      )
+    );
+  };
+
+  const deleteInvoice = (id: string) => {
+    setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
+    if (editingInvoiceId === id) {
+      resetInvoiceForm();
+    }
+    setPendingDeleteInvoiceId(null);
+  };
+
+  const responsivePage = {
+    ...page,
+    padding: isMobile ? 12 : 20,
+  };
+
+  const responsiveContainer = {
+    ...container,
+    maxWidth: isMobile ? "100%" : 1100,
+  };
+
+  const responsiveTopBar = {
+    ...topBar,
+    alignItems: isMobile ? "flex-start" : "center",
+    marginBottom: isMobile ? 16 : 20,
+  };
+
+  const responsiveGrid = {
+    ...grid,
+    gridTemplateColumns: isMobile
+      ? "1fr"
+      : "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: isMobile ? 14 : 20,
+  };
+
+  const responsiveStatsGrid = {
+    ...statsGrid,
+    gridTemplateColumns: isMobile
+      ? "repeat(2, minmax(0, 1fr))"
+      : statsGrid.gridTemplateColumns,
+    gap: isMobile ? 10 : 14,
+    marginBottom: isMobile ? 16 : 20,
+  };
+
+  const responsiveCard = {
+    ...card,
+    padding: isMobile ? 14 : 18,
+    borderRadius: isMobile ? 10 : 12,
+  };
+
+  const responsiveQuoteBox = {
+    ...quoteBox,
+    padding: isMobile ? 10 : 12,
+  };
+
+  const responsiveCustomerBox = {
+    ...customerBox,
+    padding: isMobile ? 10 : 12,
+  };
+
+  const responsiveUnitBox = {
+    ...unitBox,
+    padding: isMobile ? 10 : 12,
+  };
+
+  const responsiveInput = {
+    ...input,
+    padding: isMobile ? 12 : 10,
+    fontSize: 16,
+  };
+
+  const stackedButtonRow = {
+    ...buttonRow,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "center",
+  } as const;
+
+  const responsiveCheckboxRow = {
+    ...checkboxRow,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "flex-start" : "center",
+    gap: isMobile ? 10 : 16,
+  } as const;
+
+  const responsiveCustomerHeader = {
+    ...customerHeader,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "flex-start",
+  } as const;
+
+  const fullWidthBtn = {
+    ...btn,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center" as const,
+  };
+
+  const fullWidthBtnSecondary = {
+    ...btnSecondary,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center" as const,
+  };
+
+  const fullWidthSmallBtn = {
+    ...smallBtn,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center" as const,
+  };
+
+  const responsiveDeleteBtn = {
+    ...deleteBtn,
+    width: isMobile ? "100%" : "auto",
+  };
+
+  const responsiveJobItem = {
+    ...jobItem,
+    padding: isMobile ? 12 : 10,
+  };
+
+  if (!loaded) {
+    return (
+      <div style={responsivePage}>
+        <div style={responsiveContainer}>
+          <img
+            src="/logo.png"
+            alt="What Climate"
+            style={{ height: 50, marginBottom: 20, maxWidth: "100%" }}
+          />
+          <p style={muted}>Loading saved data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={responsivePage}>
+      <div style={responsiveContainer}>
+        <div style={responsiveTopBar}>
+          <div style={{ minWidth: 0 }}>
+            <img
+              src="/logo.png"
+              alt="What Climate"
+              style={{ height: 50, maxWidth: "100%" }}
+            />
+            <p style={{ ...muted, margin: "8px 0 0 0" }}>
+              Jobs, customers, quotes, invoices and F-Gas reporting in one place
+            </p>
+          </div>
+        </div>
+
+        <div style={responsiveStatsGrid}>
+          <div style={statCard}>
+            <div style={statLabel}>Jobs for {selectedDay}</div>
+            <div style={statValue}>{todaysTotal}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Completed</div>
+            <div style={statValue}>{todaysCompleted}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Customers</div>
+            <div style={statValue}>{customers.length}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Quotes</div>
+            <div style={statValue}>{quotes.length}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Invoices</div>
+            <div style={statValue}>{invoices.length}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Invoice Value</div>
+            <div style={statValue}>{formatMoney(invoiceValue)}</div>
+          </div>
+        </div>
+
+        <div style={responsiveGrid}>
+          <section style={responsiveCard}>
+            <h2 style={heading}>Quick Actions</h2>
+            <div style={stackedButtonRow}>
+              <button style={fullWidthBtn} onClick={() => setActiveSection("jobs")}>
+                Add Job
+              </button>
+              <button
+                style={fullWidthBtn}
+                onClick={() => setActiveSection("customers")}
+              >
+                Customer Database
+              </button>
+              <button
+                style={fullWidthBtn}
+                onClick={() => setActiveSection("quotes")}
+              >
+                Add Quote
+              </button>
+              <button
+                style={fullWidthBtn}
+                onClick={() => setActiveSection("invoices")}
+              >
+                Invoices
+              </button>
+              <button style={fullWidthBtn} onClick={() => setActiveSection("fgas")}>
+                F-Gas Reports
+              </button>
+            </div>
+          </section>
+
+          <section style={responsiveCard}>
+            <h2 style={heading}>Annual Services Due</h2>
+
+            {serviceDueCustomers.length === 0 ? (
+              <p style={muted}>No services due in the next 30 days.</p>
+            ) : (
+              serviceDueCustomers.map((customer) => (
+                <div key={customer.name} style={responsiveQuoteBox}>
+                  <strong>{customer.name}</strong>
+                  <div>{customer.address}</div>
+                  <div>Due: {customer.annualServiceDueDate}</div>
+                  <div>{customer.phone}</div>
+                </div>
+              ))
+            )}
+          </section>
+
+          <section style={responsiveCard}>
+            <h2 style={heading}>Week View</h2>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {DAYS.map((day) => (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(day)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    cursor: "pointer",
+                    background: selectedDay === day ? "#f97316" : "#eee",
+                    color: selectedDay === day ? "#fff" : "#000",
+                    flex: isMobile ? "1 1 calc(50% - 8px)" : "0 0 auto",
+                  }}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section
+            style={{
+              ...responsiveCard,
+              border:
+                activeSection === "jobs"
+                  ? "2px solid #f97316"
+                  : "2px solid transparent",
+            }}
+          >
+            <h2 style={heading}>Add Job</h2>
+
+            <input
+              type="time"
+              value={jobTime}
+              onChange={(e) => setJobTime(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              value={jobText}
+              onChange={(e) => setJobText(e.target.value)}
+              placeholder="Enter job..."
+              style={responsiveInput}
+            />
+
+            <select
+              value={jobCustomer}
+              onChange={(e) => setJobCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Customer</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+
+            <button onClick={addJob} style={fullWidthBtn}>
+              Save Job
+            </button>
+          </section>
+
+          <section style={responsiveCard}>
+            <h2 style={heading}>{selectedDay} Jobs</h2>
+
+            {filteredJobs.length === 0 && (
+              <p style={muted}>No jobs added for this day yet.</p>
+            )}
+
+            {filteredJobs.map((job) => (
+              <div
+                key={job.id}
+                style={{
+                  ...responsiveJobItem,
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  justifyContent: "space-between",
+                  alignItems: isMobile ? "stretch" : "center",
+                  textDecoration: job.done ? "line-through" : "none",
+                  opacity: job.done ? 0.6 : 1,
+                  gap: 12,
+                }}
+              >
+                <div
+                  onClick={() => toggleJob(job.id)}
+                  style={{ cursor: "pointer", flex: 1 }}
+                >
+                  <strong>{job.time || "No time"}</strong> — {job.text}
+                  {job.customer ? (
+                    <div style={{ marginTop: 6, color: "#555" }}>
+                      Customer: {job.customer}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div style={deleteActionRow}>
+                  {pendingDeleteJobId === job.id ? (
+                    <>
+                      <button
+                        onClick={() => deleteJob(job.id)}
+                        style={confirmDeleteBtn}
+                      >
+                        Confirm Delete
+                      </button>
+                      <button
+                        onClick={() => setPendingDeleteJobId(null)}
+                        style={cancelDeleteBtn}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setPendingDeleteJobId(job.id)}
+                      style={responsiveDeleteBtn}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section
+            ref={customersSectionRef}
+            style={{
+              ...responsiveCard,
+              border:
+                activeSection === "customers"
+                  ? "2px solid #f97316"
+                  : "2px solid transparent",
+            }}
+          >
+            <h2 style={heading}>
+              {editingCustomerName
+                ? `Edit Customer ${editingCustomerName}`
+                : "Add to Customer Database"}
+            </h2>
+
+            {editingCustomerName ? (
+              <div style={editBanner}>
+                You are editing customer {editingCustomerName}
+              </div>
+            ) : null}
+
+            <input
+              placeholder="Contact Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={responsiveInput}
+            />
+            <input
+              placeholder="Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              style={responsiveInput}
+            />
+            <input
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={responsiveInput}
+            />
+            <input
+              placeholder="Phone Number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={responsiveInput}
+            />
+            <input
+              placeholder="Service Cost per Visit (£)"
+              value={serviceCost}
+              onChange={(e) => setServiceCost(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <label style={{ display: "block", marginBottom: 6 }}>
+              Annual Service Due Date
+            </label>
+            <input
+              type="date"
+              value={annualServiceDueDate}
+              onChange={(e) => setAnnualServiceDueDate(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <h3 style={subheading}>Units</h3>
+
+            {units.map((unit, i) => (
+              <div key={i} style={responsiveUnitBox}>
+                <div style={unitTitle}>Unit {i + 1}</div>
+
+                <select
+                  value={unit.manufacturer}
+                  onChange={(e) =>
+                    updateUnit(i, "manufacturer", e.target.value)
+                  }
+                  style={responsiveInput}
+                >
+                  <option value="">Select Manufacturer</option>
+                  {MANUFACTURERS.map((m) => (
+                    <option key={m}>{m}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={unit.unitType}
+                  onChange={(e) =>
+                    updateUnit(i, "unitType", e.target.value as Unit["unitType"])
+                  }
+                  style={responsiveInput}
+                >
+                  <option value="">Select Unit Type</option>
+                  <option value="Internal">Internal</option>
+                  <option value="External">External</option>
+                </select>
+
+                <input
+                  placeholder="Unit Location / Area"
+                  value={unit.location}
+                  onChange={(e) => updateUnit(i, "location", e.target.value)}
+                  style={responsiveInput}
+                />
+
+                <input
+                  placeholder="Model Number"
+                  value={unit.model}
+                  onChange={(e) => updateUnit(i, "model", e.target.value)}
+                  style={responsiveInput}
+                />
+
+                <input
+                  placeholder="Serial Number"
+                  value={unit.serial}
+                  onChange={(e) => updateUnit(i, "serial", e.target.value)}
+                  style={responsiveInput}
+                />
+
+                {unit.unitType === "External" ? (
+                  <>
+                    <input
+                      placeholder="Refrigerant Type"
+                      value={unit.refrigerantType}
+                      onChange={(e) =>
+                        updateUnit(i, "refrigerantType", e.target.value)
+                      }
+                      style={responsiveInput}
+                    />
+
+                    <input
+                      placeholder="Refrigerant Charge (kg)"
+                      value={unit.refrigerantCharge}
+                      onChange={(e) =>
+                        updateUnit(i, "refrigerantCharge", e.target.value)
+                      }
+                      style={responsiveInput}
+                    />
+
+                    <input
+                      placeholder="CO2 Equivalent (tCO2e)"
+                      value={unit.co2Equivalent}
+                      onChange={(e) =>
+                        updateUnit(i, "co2Equivalent", e.target.value)
+                      }
+                      style={responsiveInput}
+                    />
+                  </>
+                ) : null}
+
+                {units.length > 1 ? (
+                  <button onClick={() => removeUnit(i)} style={btnGhost}>
+                    Remove Unit
+                  </button>
+                ) : null}
+              </div>
+            ))}
+
+            <div style={stackedButtonRow}>
+              <button onClick={addUnit} style={fullWidthBtnSecondary}>
+                + Add Another Unit
+              </button>
+              <button onClick={saveCustomer} style={fullWidthBtn}>
+                {editingCustomerName ? "Update Customer" : "Save Customer"}
+              </button>
+              {editingCustomerName ? (
+                <button onClick={resetCustomerForm} style={fullWidthBtnSecondary}>
+                  Cancel Edit
+                </button>
+              ) : null}
+            </div>
+          </section>
+
+          <section style={responsiveCard}>
+            <h2 style={heading}>Customer Database</h2>
+
+            <input
+              placeholder="Search customers by name, address, phone, or email"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <div style={{ ...stackedButtonRow, marginBottom: 12 }}>
+              <button
+                onClick={() => setSelectedLetter("All")}
+                style={{
+                  ...letterBtn,
+                  width: isMobile ? "100%" : "auto",
+                  background: selectedLetter === "All" ? "#f97316" : "#eee",
+                  color: selectedLetter === "All" ? "#fff" : "#000",
+                }}
+              >
+                All
+              </button>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  width: "100%",
+                }}
+              >
+                {ALPHABET.map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => setSelectedLetter(letter)}
+                    style={{
+                      ...letterBtn,
+                      flex: isMobile ? "1 1 calc(20% - 8px)" : "0 0 auto",
+                      background: selectedLetter === letter ? "#f97316" : "#eee",
+                      color: selectedLetter === letter ? "#fff" : "#000",
+                    }}
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {visibleCustomers.length === 0 ? (
+              <p style={muted}>No matching customers found.</p>
+            ) : (
+              <div style={customerListBox}>
+                {visibleCustomers.map((customer) => (
+                  <div key={customer.name} style={responsiveCustomerBox}>
+                    <div style={responsiveCustomerHeader}>
+                      <strong>{customer.name}</strong>
+                      <div style={deleteActionRow}>
+                        {pendingDeleteCustomerName === customer.name ? (
+                          <>
+                            <button
+                              onClick={() => deleteCustomer(customer.name)}
+                              style={confirmDeleteBtn}
+                            >
+                              Confirm Delete
+                            </button>
+                            <button
+                              onClick={() => setPendingDeleteCustomerName(null)}
+                              style={cancelDeleteBtn}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setPendingDeleteCustomerName(customer.name)}
+                            style={responsiveDeleteBtn}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>{customer.address}</div>
+                    <div>{customer.email}</div>
+                    <div>{customer.phone}</div>
+                    <div>Service Cost: £{customer.serviceCost || "0"}</div>
+                    <div>
+                      Annual Service Due:{" "}
+                      {customer.annualServiceDueDate || "Not set"}
+                    </div>
+
+                    {customer.units.length > 0 ? (
+                      customer.units.map((unit, idx) => (
+                        <div key={idx} style={unitLine}>
+                          - {unit.unitType || "No type"} |{" "}
+                          {unit.location || "No location"} |{" "}
+                          {unit.manufacturer || "No manufacturer"} |{" "}
+                          {unit.model || "No model"} |{" "}
+                          {unit.serial || "No serial"}
+                          {unit.unitType === "External" ? (
+                            <>
+                              {" "}
+                              | Ref: {unit.refrigerantType || "Not set"} | Charge:{" "}
+                              {unit.refrigerantCharge || "Not set"} kg | CO2e:{" "}
+                              {unit.co2Equivalent || "Not set"}
+                            </>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <div style={unitLine}>No units added</div>
+                    )}
+
+                    <div style={{ ...stackedButtonRow, marginTop: 12 }}>
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => startEditCustomer(customer)}
+                      >
+                        Edit Customer
+                      </button>
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => openFgasForCustomer(customer.name)}
+                      >
+                        F-Gas Report
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section
+            ref={fgasSectionRef}
+            style={{
+              ...responsiveCard,
+              border:
+                activeSection === "fgas"
+                  ? "2px solid #f97316"
+                  : "2px solid transparent",
+            }}
+          >
+            <h2 style={heading}>F-Gas Report Sheet</h2>
+
+            <select
+              value={fgasCustomer}
+              onChange={(e) => setFgasCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Customer</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="date"
+              value={fgasReportDate}
+              onChange={(e) => setFgasReportDate(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              placeholder="Engineer Name"
+              value={fgasEngineerName}
+              onChange={(e) => setFgasEngineerName(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              placeholder="Engineer Certificate Number"
+              value={fgasEngineerCertificate}
+              onChange={(e) => setFgasEngineerCertificate(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              placeholder="Company Certificate Number"
+              value={fgasCompanyCertificate}
+              onChange={(e) => setFgasCompanyCertificate(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              placeholder="Overall Leak Check Result"
+              value={fgasLeakCheckResult}
+              onChange={(e) => setFgasLeakCheckResult(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <textarea
+              placeholder="Work Carried Out"
+              value={fgasWorkCarriedOut}
+              onChange={(e) => setFgasWorkCarriedOut(e.target.value)}
+              style={{ ...responsiveInput, minHeight: 90, resize: "vertical" }}
+            />
+
+            <textarea
+              placeholder="Visit Notes"
+              value={fgasVisitNotes}
+              onChange={(e) => setFgasVisitNotes(e.target.value)}
+              style={{ ...responsiveInput, minHeight: 90, resize: "vertical" }}
+            />
+
+            {selectedFgasCustomer ? (
+              <div style={{ marginTop: 16 }}>
+                <h3 style={subheading}>Editable System Details</h3>
+
+                {fgasUnitReports.length === 0 ? (
+                  <p style={muted}>
+                    No external units found for this customer. Add external unit
+                    details in the customer database first.
+                  </p>
+                ) : (
+                  fgasUnitReports.map((unit, index) => (
+                    <div key={unit.id} style={responsiveUnitBox}>
+                      <div style={unitTitle}>System {index + 1}</div>
+
+                      <input
+                        placeholder="Location"
+                        value={unit.location}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "location", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+                      <input
+                        placeholder="Manufacturer"
+                        value={unit.manufacturer}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "manufacturer", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+                      <input
+                        placeholder="Model"
+                        value={unit.model}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "model", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+                      <input
+                        placeholder="Serial"
+                        value={unit.serial}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "serial", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+                      <input
+                        placeholder="Refrigerant Type"
+                        value={unit.refrigerantType}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "refrigerantType", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+                      <input
+                        placeholder="Refrigerant Charge (kg)"
+                        value={unit.refrigerantCharge}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "refrigerantCharge", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+                      <input
+                        placeholder="CO2 Equivalent (tCO2e)"
+                        value={unit.co2Equivalent}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "co2Equivalent", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+
+                      <select
+                        value={unit.leakCheckCompleted}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "leakCheckCompleted", e.target.value)
+                        }
+                        style={responsiveInput}
+                      >
+                        <option value="Yes">Leak Check Completed: Yes</option>
+                        <option value="No">Leak Check Completed: No</option>
+                      </select>
+
+                      <select
+                        value={unit.leakDetected}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "leakDetected", e.target.value)
+                        }
+                        style={responsiveInput}
+                      >
+                        <option value="No">Leak Detected: No</option>
+                        <option value="Yes">Leak Detected: Yes</option>
+                      </select>
+
+                      <input
+                        placeholder="Refrigerant Added (kg)"
+                        value={unit.refrigerantAdded}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "refrigerantAdded", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+
+                      <input
+                        placeholder="Refrigerant Recovered (kg)"
+                        value={unit.refrigerantRecovered}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "refrigerantRecovered", e.target.value)
+                        }
+                        style={responsiveInput}
+                      />
+
+                      <textarea
+                        placeholder="Actions Taken"
+                        value={unit.actionsTaken}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "actionsTaken", e.target.value)
+                        }
+                        style={{ ...responsiveInput, minHeight: 80, resize: "vertical" }}
+                      />
+
+                      <textarea
+                        placeholder="System Notes"
+                        value={unit.notes}
+                        onChange={(e) =>
+                          updateFgasUnitReport(index, "notes", e.target.value)
+                        }
+                        style={{ ...responsiveInput, minHeight: 80, resize: "vertical" }}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : null}
+
+            <div style={stackedButtonRow}>
+              <button
+                onClick={saveFgasPdf}
+                style={fullWidthBtn}
+                disabled={!selectedFgasCustomer}
+              >
+                Save F-Gas PDF
+              </button>
+            </div>
+
+            {!selectedFgasCustomer ? (
+              <p style={{ ...muted, marginTop: 12 }}>
+                Select a customer to generate a pre-filled editable F-Gas report.
+              </p>
+            ) : (
+              <div style={{ marginTop: 18 }}>
+                <div style={reportCard}>
+                  <div style={reportTitle}>F-Gas Inspection Report Preview</div>
+
+                  <div style={reportGrid}>
+                    <div>
+                      <strong>Customer:</strong> {selectedFgasCustomer.name}
+                    </div>
+                    <div>
+                      <strong>Report Date:</strong> {fgasReportDate || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Address:</strong> {selectedFgasCustomer.address || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Email:</strong> {selectedFgasCustomer.email || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Phone:</strong> {selectedFgasCustomer.phone || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Engineer:</strong> {fgasEngineerName || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Engineer Cert:</strong>{" "}
+                      {fgasEngineerCertificate || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Company Cert:</strong>{" "}
+                      {fgasCompanyCertificate || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Overall Leak Check Result:</strong>{" "}
+                      {fgasLeakCheckResult || "Not set"}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16 }}>
+                    <strong>Work Carried Out:</strong>
+                    <div style={reportTextBox}>
+                      {fgasWorkCarriedOut || "No work recorded."}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16 }}>
+                    <strong>Visit Notes:</strong>
+                    <div style={reportTextBox}>
+                      {fgasVisitNotes || "No notes recorded."}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 20 }}>
+                    <strong>System Register</strong>
+
+                    {fgasUnitReports.length === 0 ? (
+                      <div style={{ ...reportTextBox, marginTop: 10 }}>
+                        No external units found for this customer. Add external unit
+                        details in the customer database to generate the F-Gas sheet.
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                        {fgasUnitReports.map((unit, index) => (
+                          <div key={unit.id} style={reportUnitCard}>
+                            <div style={unitTitle}>System {index + 1}</div>
+                            <div><strong>Location:</strong> {unit.location || "Not set"}</div>
+                            <div><strong>Manufacturer:</strong> {unit.manufacturer || "Not set"}</div>
+                            <div><strong>Model:</strong> {unit.model || "Not set"}</div>
+                            <div><strong>Serial:</strong> {unit.serial || "Not set"}</div>
+                            <div><strong>Refrigerant Type:</strong> {unit.refrigerantType || "Not set"}</div>
+                            <div><strong>Refrigerant Charge:</strong> {unit.refrigerantCharge || "Not set"} kg</div>
+                            <div><strong>CO2 Equivalent:</strong> {unit.co2Equivalent || "Not set"} tCO2e</div>
+                            <div><strong>Leak Check Completed:</strong> {unit.leakCheckCompleted || "Not set"}</div>
+                            <div><strong>Leak Detected:</strong> {unit.leakDetected || "Not set"}</div>
+                            <div><strong>Refrigerant Added:</strong> {unit.refrigerantAdded || "0"} kg</div>
+                            <div><strong>Refrigerant Recovered:</strong> {unit.refrigerantRecovered || "0"} kg</div>
+                            <div><strong>Actions Taken:</strong> {unit.actionsTaken || "None"}</div>
+                            <div><strong>System Notes:</strong> {unit.notes || "None"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section
+            ref={quotesSectionRef}
+            style={{
+              ...responsiveCard,
+              border:
+                activeSection === "quotes"
+                  ? "2px solid #f97316"
+                  : "2px solid transparent",
+            }}
+          >
+            <h2 style={heading}>
+              {editingQuoteId ? `Edit Quote ${editingQuoteId}` : "Quotes"}
+            </h2>
+
+            {editingQuoteId ? (
+              <div style={editBanner}>
+                You are editing quote {editingQuoteId}
+              </div>
+            ) : null}
+
+            <select
+              value={quoteCustomer}
+              onChange={(e) => setQuoteCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Customer</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              placeholder="Quote description"
+              value={quoteDescription}
+              onChange={(e) => setQuoteDescription(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <textarea
+              placeholder="Please note"
+              value={quoteNote}
+              onChange={(e) => setQuoteNote(e.target.value)}
+              style={{ ...responsiveInput, minHeight: 100, resize: "vertical" }}
+            />
+
+            <input
+              placeholder="Quote amount (£)"
+              value={quoteAmount}
+              onChange={(e) => setQuoteAmount(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <select
+              value={quoteVatRate}
+              onChange={(e) => setQuoteVatRate(Number(e.target.value) as 0 | 20)}
+              style={responsiveInput}
+            >
+              <option value={0}>0% VAT</option>
+              <option value={20}>20% VAT</option>
+            </select>
+
+            <select
+              value={quoteStatus}
+              onChange={(e) => setQuoteStatus(e.target.value as Quote["status"])}
+              style={responsiveInput}
+            >
+              <option value="Draft">Draft</option>
+              <option value="Sent">Sent</option>
+              <option value="Approved">Approved</option>
+              <option value="Invoiced">Invoiced</option>
+            </select>
+
+            <div style={stackedButtonRow}>
+              <button onClick={saveQuote} style={fullWidthBtn}>
+                {editingQuoteId ? "Update Quote" : "Save Quote"}
+              </button>
+
+              <button onClick={previewQuote} style={fullWidthBtnSecondary}>
+                Preview Quote
+              </button>
+
+              {editingQuoteId ? (
+                <button onClick={resetQuoteForm} style={fullWidthBtnSecondary}>
+                  Cancel Edit
+                </button>
+              ) : null}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              {quotes.length === 0 ? (
+                <p style={muted}>No quotes added yet.</p>
+              ) : (
+                quotes.map((quote) => (
+                  <div key={quote.id} style={responsiveQuoteBox}>
+                    <div style={responsiveCustomerHeader}>
+                      <div>
+                        <strong>{quote.id}</strong>
+                        <div style={{ color: "#555", marginTop: 4 }}>
+                          {quote.customer}
+                        </div>
+                      </div>
+                      <div style={deleteActionRow}>
+                        {pendingDeleteQuoteId === quote.id ? (
+                          <>
+                            <button
+                              onClick={() => deleteQuote(quote.id)}
+                              style={confirmDeleteBtn}
+                            >
+                              Confirm Delete
+                            </button>
+                            <button
+                              onClick={() => setPendingDeleteQuoteId(null)}
+                              style={cancelDeleteBtn}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setPendingDeleteQuoteId(quote.id)}
+                            style={responsiveDeleteBtn}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 8 }}>{quote.description}</div>
+                    <div style={{ marginTop: 8 }}>Amount: £{quote.amount}</div>
+                    <div style={{ marginTop: 8 }}>VAT: {quote.vatRate}%</div>
+                    <div style={{ marginTop: 8 }}>
+                      Notes: {quote.note || "None"}
+                    </div>
+                    <div style={{ marginTop: 8 }}>Created: {quote.createdAt}</div>
+                    <div style={{ marginTop: 8 }}>
+                      Email: {quote.customerEmail || "No email"}
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      Address: {quote.siteAddress || "No address"}
+                    </div>
+
+                    <div style={{ ...stackedButtonRow, marginTop: 12 }}>
+                      <button
+                        style={fullWidthSmallBtn}
+                        onClick={() => updateQuoteStatus(quote.id, "Draft")}
+                      >
+                        Draft
+                      </button>
+                      <button
+                        style={fullWidthSmallBtn}
+                        onClick={() => updateQuoteStatus(quote.id, "Sent")}
+                      >
+                        Sent
+                      </button>
+                      <button
+                        style={fullWidthSmallBtn}
+                        onClick={() => updateQuoteStatus(quote.id, "Approved")}
+                      >
+                        Approved
+                      </button>
+
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => startEditQuote(quote)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => previewSavedQuote(quote)}
+                      >
+                        Preview
+                      </button>
+
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => convertQuoteToInvoice(quote)}
+                        disabled={quote.status === "Invoiced"}
+                      >
+                        Convert to Invoice
+                      </button>
+
+                      <span
+                        style={{
+                          ...statusPill(quote.status),
+                          justifyContent: "center",
+                          width: isMobile ? "100%" : "auto",
+                        }}
+                      >
+                        {quote.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section
+            ref={invoicesSectionRef}
+            style={{
+              ...responsiveCard,
+              border:
+                activeSection === "invoices"
+                  ? "2px solid #f97316"
+                  : "2px solid transparent",
+            }}
+          >
+            <h2 style={heading}>
+              {editingInvoiceId ? `Edit Invoice ${editingInvoiceId}` : "Invoices"}
+            </h2>
+
+            {editingInvoiceId ? (
+              <div style={editBanner}>
+                You are editing invoice {editingInvoiceId}
+              </div>
+            ) : null}
+
+            <select
+              value={invoiceCustomer}
+              onChange={(e) => setInvoiceCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Customer</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+
+            <textarea
+              placeholder="Invoice description"
+              value={invoiceDescription}
+              onChange={(e) => setInvoiceDescription(e.target.value)}
+              style={{ ...responsiveInput, minHeight: 90, resize: "vertical" }}
+            />
+
+            <div style={responsiveCheckboxRow}>
+              <label style={checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={invoiceApplyReverseVat}
+                  onChange={(e) => setInvoiceApplyReverseVat(e.target.checked)}
+                />
+                Reverse VAT Charge
+              </label>
+
+              <label style={checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={invoiceApplyCis}
+                  onChange={(e) => setInvoiceApplyCis(e.target.checked)}
+                />
+                CIS Deduction
+              </label>
+            </div>
+
+            <select
+              value={invoiceVatRate}
+              onChange={(e) => setInvoiceVatRate(Number(e.target.value) as 0 | 20)}
+              style={responsiveInput}
+              disabled={invoiceApplyReverseVat}
+            >
+              <option value={0}>0% VAT</option>
+              <option value={20}>20% VAT</option>
+            </select>
+
+            {!invoiceApplyCis ? (
+              <input
+                placeholder="Subtotal (£)"
+                value={invoiceSubtotalAmount}
+                onChange={(e) => setInvoiceSubtotalAmount(e.target.value)}
+                style={responsiveInput}
+              />
+            ) : (
+              <>
+                <input
+                  placeholder="Materials amount (£)"
+                  value={invoiceMaterialsAmount}
+                  onChange={(e) => setInvoiceMaterialsAmount(e.target.value)}
+                  style={responsiveInput}
+                />
+                <input
+                  placeholder="Labour amount (£)"
+                  value={invoiceLabourAmount}
+                  onChange={(e) => setInvoiceLabourAmount(e.target.value)}
+                  style={responsiveInput}
+                />
+                <input
+                  placeholder="CIS deduction amount (£)"
+                  value={invoiceCisDeductionAmount}
+                  onChange={(e) => setInvoiceCisDeductionAmount(e.target.value)}
+                  style={responsiveInput}
+                />
+              </>
+            )}
+
+            <input
+              placeholder="PO / Order Number"
+              value={invoicePoNumber}
+              onChange={(e) => setInvoicePoNumber(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              placeholder="Upgraded Job Number"
+              value={invoiceUpgradedJobNumber}
+              onChange={(e) => setInvoiceUpgradedJobNumber(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <input
+              placeholder="Payment Terms"
+              value={invoicePaymentTerms}
+              onChange={(e) => setInvoicePaymentTerms(e.target.value)}
+              style={responsiveInput}
+            />
+
+            <div style={stackedButtonRow}>
+              <button onClick={saveInvoice} style={fullWidthBtn}>
+                {editingInvoiceId ? "Update Invoice" : "Save Invoice"}
+              </button>
+
+              {editingInvoiceId ? (
+                <button onClick={resetInvoiceForm} style={fullWidthBtnSecondary}>
+                  Cancel Edit
+                </button>
+              ) : null}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              {invoices.length === 0 ? (
+                <p style={muted}>No invoices created yet.</p>
+              ) : (
+                invoices.map((invoice) => {
+                  const values = getInvoiceValues(invoice);
+
+                  return (
+                    <div key={invoice.id} style={responsiveQuoteBox}>
+                      <div style={responsiveCustomerHeader}>
+                        <div>
+                          <strong>{invoice.id}</strong>
+                          <div style={{ color: "#555", marginTop: 4 }}>
+                            {invoice.customer}
+                          </div>
+                        </div>
+                        <div style={deleteActionRow}>
+                          {pendingDeleteInvoiceId === invoice.id ? (
+                            <>
+                              <button
+                                onClick={() => deleteInvoice(invoice.id)}
+                                style={confirmDeleteBtn}
+                              >
+                                Confirm Delete
+                              </button>
+                              <button
+                                onClick={() => setPendingDeleteInvoiceId(null)}
+                                style={cancelDeleteBtn}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setPendingDeleteInvoiceId(invoice.id)}
+                              style={responsiveDeleteBtn}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 8 }}>{invoice.description}</div>
+                      <div style={{ marginTop: 8 }}>
+                        VAT Rate: {invoice.invoiceVatRate}%
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Reverse VAT: {invoice.applyReverseVat ? "Yes" : "No"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        CIS: {invoice.applyCis ? "Yes" : "No"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Subtotal: {formatMoney(values.subtotal)}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        VAT: {formatMoney(values.vat)}
+                      </div>
+
+                      {invoice.applyCis ? (
+                        <>
+                          <div style={{ marginTop: 8 }}>
+                            Materials: {formatMoney(toNumber(invoice.materialsAmount))}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            Labour: {formatMoney(toNumber(invoice.labourAmount))}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            CIS: -{formatMoney(values.cisDeduction)}
+                          </div>
+                        </>
+                      ) : null}
+
+                      <div style={{ marginTop: 8 }}>
+                        Total: {formatMoney(values.total)}
+                      </div>
+                      <div style={{ marginTop: 8 }}>Created: {invoice.createdAt}</div>
+                      <div style={{ marginTop: 8 }}>
+                        Email: {invoice.customerEmail || "No email"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Address: {invoice.siteAddress || "No address"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        PO / Order: {invoice.poNumber || "None"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Upgraded Job: {invoice.upgradedJobNumber || "None"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Payment Terms: {invoice.paymentTerms || "None"}
+                      </div>
+
+                      {invoice.applyReverseVat ? (
+                        <div style={{ marginTop: 8 }}>
+                          Reverse charge wording will show on the invoice preview.
+                        </div>
+                      ) : null}
+
+                      <div style={{ ...stackedButtonRow, marginTop: 12 }}>
+                        <button
+                          style={fullWidthSmallBtn}
+                          onClick={() => toggleInvoicePaid(invoice.id)}
+                        >
+                          Mark {invoice.status === "Paid" ? "Unpaid" : "Paid"}
+                        </button>
+
+                        <button
+                          style={fullWidthBtnSecondary}
+                          onClick={() => startEditInvoice(invoice)}
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          style={fullWidthBtnSecondary}
+                          onClick={() => previewInvoice(invoice)}
+                        >
+                          Preview Invoice
+                        </button>
+
+                        <span
+                          style={{
+                            ...statusPill(invoice.status),
+                            justifyContent: "center",
+                            width: isMobile ? "100%" : "auto",
+                          }}
+                        >
+                          {invoice.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const page: CSSProperties = {
+  background: "#f5f5f5",
+  minHeight: "100vh",
+  padding: 20,
+  fontFamily: "Arial, sans-serif",
+};
+
+const container: CSSProperties = {
+  maxWidth: 1100,
+  margin: "0 auto",
+};
+
+const topBar: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 16,
+  marginBottom: 20,
+  flexWrap: "wrap",
+};
+
+const grid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: 20,
+};
+
+const statsGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: 14,
+  marginBottom: 20,
+};
+
+const statCard: CSSProperties = {
+  background: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+};
+
+const statLabel: CSSProperties = {
+  fontSize: 13,
+  color: "#666",
+  marginBottom: 8,
+};
+
+const statValue: CSSProperties = {
+  fontSize: 26,
+  fontWeight: 700,
+  color: "#111",
+};
+
+const card: CSSProperties = {
+  background: "#ffffff",
+  borderRadius: 12,
+  padding: 18,
+  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+};
+
+const heading: CSSProperties = {
+  marginTop: 0,
+  marginBottom: 16,
+};
+
+const subheading: CSSProperties = {
+  marginTop: 18,
+  marginBottom: 10,
+};
+
+const input: CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: 10,
+  marginBottom: 10,
+  border: "1px solid #ddd",
+  borderRadius: 8,
+};
+
+const btn: CSSProperties = {
+  background: "#f97316",
+  color: "#fff",
+  border: "none",
+  padding: "10px 14px",
+  borderRadius: 8,
+  cursor: "pointer",
+};
+
+const btnSecondary: CSSProperties = {
+  background: "#fff",
+  color: "#f97316",
+  border: "1px solid #f97316",
+  padding: "10px 14px",
+  borderRadius: 8,
+  cursor: "pointer",
+};
+
+const btnGhost: CSSProperties = {
+  background: "transparent",
+  color: "#d9480f",
+  border: "none",
+  padding: 0,
+  cursor: "pointer",
+};
+
+const smallBtn: CSSProperties = {
+  background: "#fff7ed",
+  color: "#c2410c",
+  border: "1px solid #fdba74",
+  padding: "6px 10px",
+  borderRadius: 8,
+  cursor: "pointer",
+};
+
+const deleteBtn: CSSProperties = {
+  background: "red",
+  color: "#fff",
+  border: "none",
+  borderRadius: 6,
+  padding: "6px 10px",
+  cursor: "pointer",
+};
+
+const confirmDeleteBtn: CSSProperties = {
+  background: "#b91c1c",
+  color: "#fff",
+  border: "none",
+  borderRadius: 6,
+  padding: "6px 10px",
+  cursor: "pointer",
+};
+
+const cancelDeleteBtn: CSSProperties = {
+  background: "#fff",
+  color: "#374151",
+  border: "1px solid #d1d5db",
+  borderRadius: 6,
+  padding: "6px 10px",
+  cursor: "pointer",
+};
+
+const deleteActionRow: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const letterBtn: CSSProperties = {
+  border: "none",
+  borderRadius: 6,
+  padding: "8px 10px",
+  cursor: "pointer",
+  minWidth: 36,
+};
+
+const buttonRow: CSSProperties = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const checkboxRow: CSSProperties = {
+  display: "flex",
+  gap: 16,
+  flexWrap: "wrap",
+  alignItems: "center",
+  marginBottom: 12,
+};
+
+const checkboxLabel: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+const jobItem: CSSProperties = {
+  padding: 10,
+  marginBottom: 8,
+  background: "#f1f1f1",
+  borderRadius: 8,
+};
+
+const unitBox: CSSProperties = {
+  background: "#f7f7f7",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 12,
+};
+
+const customerListBox: CSSProperties = {
+  maxHeight: 420,
+  overflowY: "auto",
+};
+
+const customerBox: CSSProperties = {
+  background: "#f7f7f7",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 12,
+};
+
+const quoteBox: CSSProperties = {
+  background: "#f7f7f7",
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 12,
+};
+
+const customerHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 10,
+};
+
+const unitLine: CSSProperties = {
+  marginTop: 6,
+  marginLeft: 8,
+  fontSize: 14,
+  wordBreak: "break-word",
+};
+
+const muted: CSSProperties = {
+  color: "#666",
+};
+
+const editBanner: CSSProperties = {
+  background: "#fff7ed",
+  color: "#c2410c",
+  border: "1px solid #fdba74",
+  borderRadius: 8,
+  padding: "10px 12px",
+  marginBottom: 12,
+  fontWeight: 600,
+};
+
+const unitTitle: CSSProperties = {
+  fontWeight: 700,
+  marginBottom: 10,
+  color: "#111",
+};
+
+const reportCard: CSSProperties = {
+  background: "#fafafa",
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  padding: 16,
+};
+
+const reportTitle: CSSProperties = {
+  fontSize: 20,
+  fontWeight: 700,
+  marginBottom: 16,
+};
+
+const reportGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 10,
+};
+
+const reportTextBox: CSSProperties = {
+  marginTop: 8,
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 8,
+  padding: 10,
+  minHeight: 48,
+  whiteSpace: "pre-wrap",
+};
+
+const reportUnitCard: CSSProperties = {
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 10,
+  padding: 12,
+  display: "grid",
+  gap: 6,
+};
+
+const statusPill = (status: string): CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "6px 10px",
+  borderRadius: 999,
+  background:
+    status === "Approved"
+      ? "#dcfce7"
+      : status === "Sent"
+      ? "#dbeafe"
+      : status === "Invoiced"
+      ? "#ede9fe"
+      : status === "Paid"
+      ? "#dcfce7"
+      : "#f3f4f6",
+  color:
+    status === "Approved"
+      ? "#166534"
+      : status === "Sent"
+      ? "#1d4ed8"
+      : status === "Invoiced"
+      ? "#6d28d9"
+      : status === "Paid"
+      ? "#166534"
+      : "#374151",
+  fontSize: 13,
+  fontWeight: 600,
+});
