@@ -200,7 +200,7 @@ const escapeHtml = (value: string) =>
     .replaceAll("'", "&#039;");
 
 export default function Home() {
-const APP_PASSWORD = "0070";
+  const APP_PASSWORD = "0070";
   const [passwordInput, setPasswordInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [selectedDay, setSelectedDay] = useState("Monday");
@@ -1246,6 +1246,20 @@ const APP_PASSWORD = "0070";
   };
 
   if (!loaded) {
+    return (
+      <div style={responsivePage}>
+        <div style={responsiveContainer}>
+          <img
+            src="/logo.png"
+            alt="What Climate"
+            style={{ height: 50, marginBottom: 20, maxWidth: "100%" }}
+          />
+          <p style={muted}>Loading saved data...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!unlocked) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -1284,19 +1298,6 @@ const APP_PASSWORD = "0070";
           >
             Unlock App
           </button>
-        </div>
-      </div>
-    );
-  }
-    return (
-      <div style={responsivePage}>
-        <div style={responsiveContainer}>
-          <img
-            src="/logo.png"
-            alt="What Climate"
-            style={{ height: 50, marginBottom: 20, maxWidth: "100%" }}
-          />
-          <p style={muted}>Loading saved data...</p>
         </div>
       </div>
     );
@@ -2559,7 +2560,7 @@ const APP_PASSWORD = "0070";
                         Upgraded Job: {invoice.upgradedJobNumber || "None"}
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        Payment Terms: {invoice.paymentTerms || "None"}
+                        Payment Terms: {invoicePaymentTerms || invoice.paymentTerms || "None"}
                       </div>
 
                       {invoice.applyReverseVat ? (
