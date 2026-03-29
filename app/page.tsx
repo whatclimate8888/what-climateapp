@@ -200,6 +200,9 @@ const escapeHtml = (value: string) =>
     .replaceAll("'", "&#039;");
 
 export default function Home() {
+const APP_PASSWORD = "0070";
+  const [passwordInput, setPasswordInput] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [activeSection, setActiveSection] = useState<
     "jobs" | "customers" | "quotes" | "invoices" | "fgas"
@@ -1129,23 +1132,23 @@ export default function Home() {
     setPendingDeleteInvoiceId(null);
   };
 
-  const responsivePage = {
+  const responsivePage: CSSProperties = {
     ...page,
     padding: isMobile ? 12 : 20,
   };
 
-  const responsiveContainer = {
+  const responsiveContainer: CSSProperties = {
     ...container,
     maxWidth: isMobile ? "100%" : 1100,
   };
 
-  const responsiveTopBar = {
+  const responsiveTopBar: CSSProperties = {
     ...topBar,
     alignItems: isMobile ? "flex-start" : "center",
     marginBottom: isMobile ? 16 : 20,
   };
 
-  const responsiveGrid = {
+  const responsiveGrid: CSSProperties = {
     ...grid,
     gridTemplateColumns: isMobile
       ? "1fr"
@@ -1153,7 +1156,7 @@ export default function Home() {
     gap: isMobile ? 14 : 20,
   };
 
-  const responsiveStatsGrid = {
+  const responsiveStatsGrid: CSSProperties = {
     ...statsGrid,
     gridTemplateColumns: isMobile
       ? "repeat(2, minmax(0, 1fr))"
@@ -1162,83 +1165,82 @@ export default function Home() {
     marginBottom: isMobile ? 16 : 20,
   };
 
-  const responsiveCard = {
+  const responsiveCard: CSSProperties = {
     ...card,
     padding: isMobile ? 14 : 18,
     borderRadius: isMobile ? 10 : 12,
   };
 
-  const responsiveQuoteBox = {
+  const responsiveQuoteBox: CSSProperties = {
     ...quoteBox,
     padding: isMobile ? 10 : 12,
   };
 
-  const responsiveCustomerBox = {
+  const responsiveCustomerBox: CSSProperties = {
     ...customerBox,
     padding: isMobile ? 10 : 12,
   };
 
-  const responsiveUnitBox = {
+  const responsiveUnitBox: CSSProperties = {
     ...unitBox,
     padding: isMobile ? 10 : 12,
   };
 
-  const responsiveInput = {
+  const responsiveInput: CSSProperties = {
     ...input,
     padding: isMobile ? 12 : 10,
     fontSize: 16,
   };
 
   const stackedButtonRow: CSSProperties = {
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-  alignItems: isMobile ? "stretch" : "center",
-  flexDirection: isMobile ? "column" : "row",
-};
-
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: isMobile ? "stretch" : "center",
+    flexDirection: isMobile ? "column" : "row",
+  };
 
   const responsiveCheckboxRow: CSSProperties = {
-  display: "flex",
-  gap: isMobile ? 10 : 16,
-  flexWrap: "wrap",
-  alignItems: isMobile ? "flex-start" : "center",
-  marginBottom: 12,
-  flexDirection: isMobile ? "column" : "row",
-};
+    display: "flex",
+    gap: isMobile ? 10 : 16,
+    flexWrap: "wrap",
+    alignItems: isMobile ? "flex-start" : "center",
+    marginBottom: 12,
+    flexDirection: isMobile ? "column" : "row",
+  };
 
   const responsiveCustomerHeader: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 10,
-  flexDirection: isMobile ? "column" : "row",
-  alignItems: isMobile ? "stretch" : "flex-start",
-};
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "flex-start",
+  };
 
   const fullWidthBtn: CSSProperties = {
-  ...btn,
-  width: isMobile ? "100%" : "auto",
-  textAlign: "center",
-};
+    ...btn,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center",
+  };
 
   const fullWidthBtnSecondary: CSSProperties = {
-  ...btnSecondary,
-  width: isMobile ? "100%" : "auto",
-  textAlign: "center",
-};
+    ...btnSecondary,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center",
+  };
 
   const fullWidthSmallBtn: CSSProperties = {
-  ...smallBtn,
-  width: isMobile ? "100%" : "auto",
-  textAlign: "center",
-};
+    ...smallBtn,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center",
+  };
 
   const responsiveDeleteBtn: CSSProperties = {
-  ...deleteBtn,
-  width: isMobile ? "100%" : "auto",
-};
+    ...deleteBtn,
+    width: isMobile ? "100%" : "auto",
+  };
 
-  const responsiveJobItem = {
+  const responsiveJobItem: CSSProperties = {
     ...jobItem,
     padding: isMobile ? 12 : 10,
   };
