@@ -42,6 +42,7 @@ type Quote = {
   id: string;
   customer: string;
   customerEmail: string;
+  siteCustomer: string;
   siteAddress: string;
   description: string;
   note: string;
@@ -65,6 +66,7 @@ type QuotePreviewData = {
 
 type QuoteDraft = {
   quoteCustomer: string;
+  quoteSiteCustomer: string;
   quoteDescription: string;
   quoteNote: string;
   quoteAmount: string;
@@ -78,6 +80,7 @@ type Invoice = {
   quoteId: string;
   customer: string;
   customerEmail: string;
+  siteCustomer: string;
   siteAddress: string;
   description: string;
   createdAt: string;
@@ -230,6 +233,7 @@ export default function Home() {
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteCustomer, setQuoteCustomer] = useState("");
+  const [quoteSiteCustomer, setQuoteSiteCustomer] = useState("");
   const [quoteDescription, setQuoteDescription] = useState("");
   const [quoteNote, setQuoteNote] = useState("Please note:");
   const [quoteAmount, setQuoteAmount] = useState("");
@@ -239,6 +243,7 @@ export default function Home() {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceCustomer, setInvoiceCustomer] = useState("");
+  const [invoiceSiteCustomer, setInvoiceSiteCustomer] = useState("");
   const [invoiceDescription, setInvoiceDescription] = useState("");
   const [invoiceVatRate, setInvoiceVatRate] = useState<0 | 20>(20);
   const [invoiceApplyReverseVat, setInvoiceApplyReverseVat] = useState(false);
@@ -305,7 +310,6 @@ export default function Home() {
       if (savedQuoteDraft) {
         const parsedDraft: QuoteDraft = JSON.parse(savedQuoteDraft);
         setQuoteCustomer(parsedDraft.quoteCustomer || "");
-        setQuoteDescription(parsedDraft.quoteDescription || "");
         setQuoteNote(parsedDraft.quoteNote || "Please note:");
         setQuoteAmount(parsedDraft.quoteAmount || "");
         setQuoteVatRate(parsedDraft.quoteVatRate ?? 20);
@@ -352,14 +356,15 @@ export default function Home() {
     if (!loaded) return;
 
     const quoteDraft: QuoteDraft = {
-      quoteCustomer,
-      quoteDescription,
-      quoteNote,
-      quoteAmount,
-      quoteVatRate,
-      quoteStatus,
-      editingQuoteId,
-    };
+  quoteCustomer,
+  quoteSiteCustomer,
+  quoteDescription,
+  quoteNote,
+  quoteAmount,
+  quoteVatRate,
+  quoteStatus,
+  editingQuoteId,
+};
 
     localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
   }, [
@@ -439,7 +444,8 @@ export default function Home() {
 
   const resetQuoteForm = () => {
     setQuoteCustomer("");
-    setQuoteDescription("");
+setQuoteSiteCustomer("");
+setQuoteDescription("");
     setQuoteNote("Please note:");
     setQuoteAmount("");
     setQuoteVatRate(20);
@@ -450,7 +456,8 @@ export default function Home() {
 
   const resetInvoiceForm = () => {
     setInvoiceCustomer("");
-    setInvoiceDescription("");
+setInvoiceSiteCustomer("");
+setInvoiceDescription("");
     setInvoiceVatRate(20);
     setInvoiceApplyReverseVat(false);
     setInvoiceApplyCis(false);
@@ -517,6 +524,7 @@ export default function Home() {
 
   const previewQuote = () => {
     const matchedCustomer = customers.find((c) => c.name === quoteCustomer);
+    const matchedSiteCustomer = customers.find((c) => c.name === quoteSiteCustomer);
 
     const quoteNumber = editingQuoteId
       ? editingQuoteId.replace("Q-", "")
@@ -527,7 +535,7 @@ export default function Home() {
       date: new Date().toLocaleDateString("en-GB"),
       preparedBy: "Luke Page",
       customerName: quoteCustomer || "No customer selected",
-      siteAddress: matchedCustomer?.address || "No site address",
+            siteAddress: matchedSiteCustomer?.address || "No site address",
       description: quoteDescription || "No description",
       note: quoteNote || "Please note:",
       totalPrice: quoteAmount || "0",
@@ -535,14 +543,15 @@ export default function Home() {
     };
 
     const quoteDraft: QuoteDraft = {
-      quoteCustomer,
-      quoteDescription,
-      quoteNote,
-      quoteAmount,
-      quoteVatRate,
-      quoteStatus,
-      editingQuoteId,
-    };
+  quoteCustomer,
+  quoteSiteCustomer,
+  quoteDescription,
+  quoteNote,
+  quoteAmount,
+  quoteVatRate,
+  quoteStatus,
+  editingQuoteId,
+};
 
     localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
     localStorage.setItem("what-climate-current-quote", JSON.stringify(quote));
@@ -995,6 +1004,7 @@ export default function Home() {
     }
 
     const matchedCustomer = customers.find((c) => c.name === quoteCustomer);
+    const matchedSiteCustomer = customers.find((c) => c.name === quoteSiteCustomer);
 
     if (editingQuoteId) {
       setQuotes((prev) =>
@@ -1002,9 +1012,10 @@ export default function Home() {
           quote.id === editingQuoteId
             ? {
                 ...quote,
-                customer: quoteCustomer,
+                                customer: quoteCustomer,
                 customerEmail: matchedCustomer?.email || "",
-                siteAddress: matchedCustomer?.address || "",
+                siteCustomer: quoteSiteCustomer,
+                siteAddress: matchedSiteCustomer?.address || "",
                 description: quoteDescription,
                 note: quoteNote,
                 amount: quoteAmount,
@@ -1017,9 +1028,10 @@ export default function Home() {
     } else {
       const newQuote: Quote = {
         id: getNextQuoteId(),
-        customer: quoteCustomer,
+                customer: quoteCustomer,
         customerEmail: matchedCustomer?.email || "",
-        siteAddress: matchedCustomer?.address || "",
+        siteCustomer: quoteSiteCustomer,
+        siteAddress: matchedSiteCustomer?.address || "",
         description: quoteDescription,
         note: quoteNote,
         amount: quoteAmount,
@@ -1038,6 +1050,7 @@ export default function Home() {
   const startEditQuote = (quote: Quote) => {
     setEditingQuoteId(quote.id);
     setQuoteCustomer(quote.customer);
+    setQuoteSiteCustomer(quote.siteCustomer || "");
     setQuoteDescription(quote.description);
     setQuoteNote(quote.note);
     setQuoteAmount(quote.amount);
@@ -1071,6 +1084,7 @@ export default function Home() {
     if (!invoiceCustomer.trim() || !invoiceDescription.trim()) return;
 
     const matchedCustomer = customers.find((c) => c.name === invoiceCustomer);
+    const matchedSiteCustomer = customers.find((c) => c.name === invoiceSiteCustomer);
 
     if (editingInvoiceId) {
       setInvoices((prev) =>
@@ -1078,9 +1092,10 @@ export default function Home() {
           invoice.id === editingInvoiceId
             ? {
                 ...invoice,
-                customer: invoiceCustomer,
+                                customer: invoiceCustomer,
                 customerEmail: matchedCustomer?.email || "",
-                siteAddress: matchedCustomer?.address || "",
+                siteCustomer: invoiceSiteCustomer,
+                siteAddress: matchedSiteCustomer?.address || "",
                 description: invoiceDescription,
                 invoiceVatRate,
                 applyReverseVat: invoiceApplyReverseVat,
@@ -1102,9 +1117,10 @@ export default function Home() {
       const newInvoice: Invoice = {
         id: newInvoiceId,
         quoteId: "",
-        customer: invoiceCustomer,
+                customer: invoiceCustomer,
         customerEmail: matchedCustomer?.email || "",
-        siteAddress: matchedCustomer?.address || "",
+        siteCustomer: invoiceSiteCustomer,
+        siteAddress: matchedSiteCustomer?.address || "",
         description: invoiceDescription,
         createdAt: new Date().toLocaleDateString("en-GB"),
         status: "Unpaid",
@@ -1130,6 +1146,7 @@ export default function Home() {
   const startEditInvoice = (invoice: Invoice) => {
     setEditingInvoiceId(invoice.id);
     setInvoiceCustomer(invoice.customer);
+    setInvoiceSiteCustomer(invoice.siteCustomer || "");
     setInvoiceDescription(invoice.description);
     setInvoiceVatRate(invoice.invoiceVatRate);
     setInvoiceApplyReverseVat(invoice.applyReverseVat);
@@ -1162,8 +1179,9 @@ export default function Home() {
     const newInvoice: Invoice = {
       id: newInvoiceId,
       quoteId: quote.id,
-      customer: quote.customer,
+            customer: quote.customer,
       customerEmail: quote.customerEmail,
+      siteCustomer: quote.siteCustomer,
       siteAddress: quote.siteAddress,
       description: quote.description,
       createdAt: new Date().toLocaleDateString("en-GB"),
@@ -2268,6 +2286,18 @@ export default function Home() {
                 </option>
               ))}
             </select>
+            <select
+              value={quoteSiteCustomer}
+              onChange={(e) => setQuoteSiteCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Site Details</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
 
             <input
               placeholder="Quote description"
@@ -2464,6 +2494,18 @@ export default function Home() {
               style={responsiveInput}
             >
               <option value="">Select Customer</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={invoiceSiteCustomer}
+              onChange={(e) => setInvoiceSiteCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Site Details</option>
               {sortedCustomers.map((customer) => (
                 <option key={customer.name} value={customer.name}>
                   {customer.name}
