@@ -1188,48 +1188,47 @@ export default function Home() {
     padding: isMobile ? 12 : 10,
     fontSize: 16,
   };
+const stackedButtonRow: CSSProperties = {
+  ...buttonRow,
+  flexDirection: (isMobile ? "column" : "row") as const,
+  alignItems: (isMobile ? "stretch" : "center") as const,
+};
 
-  const stackedButtonRow = {
-    ...buttonRow,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "stretch" : "center",
-  } as const;
+const responsiveCheckboxRow: CSSProperties = {
+  ...checkboxRow,
+  flexDirection: (isMobile ? "column" : "row") as const,
+  alignItems: (isMobile ? "flex-start" : "center") as const,
+  gap: isMobile ? 10 : 16,
+};
 
-  const responsiveCheckboxRow = {
-    ...checkboxRow,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "flex-start" : "center",
-    gap: isMobile ? 10 : 16,
-  } as const;
+const responsiveCustomerHeader: CSSProperties = {
+  ...customerHeader,
+  flexDirection: (isMobile ? "column" : "row") as const,
+  alignItems: (isMobile ? "stretch" : "flex-start") as const,
+};
 
-  const responsiveCustomerHeader = {
-    ...customerHeader,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "stretch" : "flex-start",
-  } as const;
+const fullWidthBtn: CSSProperties = {
+  ...btn,
+  width: isMobile ? "100%" : "auto",
+  textAlign: "center",
+};
 
-  const fullWidthBtn = {
-    ...btn,
-    width: isMobile ? "100%" : "auto",
-    textAlign: "center" as const,
-  };
+const fullWidthBtnSecondary: CSSProperties = {
+  ...btnSecondary,
+  width: isMobile ? "100%" : "auto",
+  textAlign: "center",
+};
 
-  const fullWidthBtnSecondary = {
-    ...btnSecondary,
-    width: isMobile ? "100%" : "auto",
-    textAlign: "center" as const,
-  };
+const fullWidthSmallBtn: CSSProperties = {
+  ...smallBtn,
+  width: isMobile ? "100%" : "auto",
+  textAlign: "center",
+};
 
-  const fullWidthSmallBtn = {
-    ...smallBtn,
-    width: isMobile ? "100%" : "auto",
-    textAlign: "center" as const,
-  };
-
-  const responsiveDeleteBtn = {
-    ...deleteBtn,
-    width: isMobile ? "100%" : "auto",
-  };
+const responsiveDeleteBtn: CSSProperties = {
+  ...deleteBtn,
+  width: isMobile ? "100%" : "auto",
+};
 
   const responsiveJobItem = {
     ...jobItem,
