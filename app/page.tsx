@@ -275,7 +275,7 @@ export default function Home() {
   const quotesSectionRef = useRef<HTMLElement | null>(null);
   const invoicesSectionRef = useRef<HTMLElement | null>(null);
   const fgasSectionRef = useRef<HTMLElement | null>(null);
-
+  const backupFileInputRef = useRef<HTMLInputElement | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -715,7 +715,83 @@ export default function Home() {
       });
     });
   };
+  const exportBackup = () => {
+    const backupData = {
+      exportedAt: new Date().toISOString(),
+      jobs,
+      customers,
+      quotes,
+      invoices,
+      quoteDraft: {
+        quoteCustomer,
+        quoteDescription,
+        quoteNote,
+        quoteAmount,
+        quoteVatRate,
+        quoteStatus,
+        editingQuoteId,
+      },
+    };
 
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+
+    a.href = url;
+    a.download = `what-climate-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importBackup = (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const text = reader.result as string;
+        const parsed = JSON.parse(text);
+
+        if (!parsed || typeof parsed !== "object") {
+          alert("Invalid backup file");
+          return;
+        }
+
+        setJobs(Array.isArray(parsed.jobs) ? parsed.jobs : []);
+        setCustomers(Array.isArray(parsed.customers) ? parsed.customers : []);
+        setQuotes(Array.isArray(parsed.quotes) ? parsed.quotes : []);
+        setInvoices(Array.isArray(parsed.invoices) ? parsed.invoices : []);
+
+        const draft = parsed.quoteDraft || {};
+        setQuoteCustomer(draft.quoteCustomer || "");
+        setQuoteDescription(draft.quoteDescription || "");
+        setQuoteNote(draft.quoteNote || "Please note:");
+        setQuoteAmount(draft.quoteAmount || "");
+        setQuoteVatRate(draft.quoteVatRate ?? 20);
+        setQuoteStatus(draft.quoteStatus || "Draft");
+        setEditingQuoteId(draft.editingQuoteId || null);
+
+        alert("Backup imported successfully");
+      } catch (error) {
+        console.error("Failed to import backup", error);
+        alert("Could not import backup file");
+      } finally {
+        if (backupFileInputRef.current) {
+          backupFileInputRef.current.value = "";
+        }
+      }
+    };
+
+    reader.readAsText(file);
+  };
   const addJob = () => {
     if (!jobText.trim()) return;
 
@@ -1376,7 +1452,33 @@ export default function Home() {
               </button>
             </div>
           </section>
+<section style={responsiveCard}>
+  <h2 style={heading}>Backup & Restore</h2>
+  <p style={{ ...muted, marginBottom: 12 }}>
+    Export your app data to a backup file, or import a previous backup.
+  </p>
 
+  <div style={stackedButtonRow}>
+    <button onClick={exportBackup} style={fullWidthBtn}>
+      Export Backup
+    </button>
+
+    <button
+      onClick={() => backupFileInputRef.current?.click()}
+      style={fullWidthBtnSecondary}
+    >
+      Import Backup
+    </button>
+  </div>
+
+  <input
+    ref={backupFileInputRef}
+    type="file"
+    accept=".json,application/json"
+    onChange={importBackup}
+    style={{ display: "none" }}
+  />
+</section>
           <section style={responsiveCard}>
             <h2 style={heading}>Annual Services Due</h2>
 
@@ -2560,7 +2662,7 @@ export default function Home() {
                         Upgraded Job: {invoice.upgradedJobNumber || "None"}
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        Payment Terms: {invoicePaymentTerms || invoice.paymentTerms || "None"}
+                        Payment Terms: {invoice.paymentTerms || "30 Days"}
                       </div>
 
                       {invoice.applyReverseVat ? (
