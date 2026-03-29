@@ -200,6 +200,9 @@ const escapeHtml = (value: string) =>
     .replaceAll("'", "&#039;");
 
 export default function Home() {
+  const APP_PASSWORD = "0070";
+  const [passwordInput, setPasswordInput] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [activeSection, setActiveSection] = useState<
     "jobs" | "customers" | "quotes" | "invoices" | "fgas"
@@ -272,7 +275,7 @@ export default function Home() {
   const quotesSectionRef = useRef<HTMLElement | null>(null);
   const invoicesSectionRef = useRef<HTMLElement | null>(null);
   const fgasSectionRef = useRef<HTMLElement | null>(null);
-
+  const backupFileInputRef = useRef<HTMLInputElement | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -712,7 +715,83 @@ export default function Home() {
       });
     });
   };
+  const exportBackup = () => {
+    const backupData = {
+      exportedAt: new Date().toISOString(),
+      jobs,
+      customers,
+      quotes,
+      invoices,
+      quoteDraft: {
+        quoteCustomer,
+        quoteDescription,
+        quoteNote,
+        quoteAmount,
+        quoteVatRate,
+        quoteStatus,
+        editingQuoteId,
+      },
+    };
 
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+
+    a.href = url;
+    a.download = `what-climate-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importBackup = (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const text = reader.result as string;
+        const parsed = JSON.parse(text);
+
+        if (!parsed || typeof parsed !== "object") {
+          alert("Invalid backup file");
+          return;
+        }
+
+        setJobs(Array.isArray(parsed.jobs) ? parsed.jobs : []);
+        setCustomers(Array.isArray(parsed.customers) ? parsed.customers : []);
+        setQuotes(Array.isArray(parsed.quotes) ? parsed.quotes : []);
+        setInvoices(Array.isArray(parsed.invoices) ? parsed.invoices : []);
+
+        const draft = parsed.quoteDraft || {};
+        setQuoteCustomer(draft.quoteCustomer || "");
+        setQuoteDescription(draft.quoteDescription || "");
+        setQuoteNote(draft.quoteNote || "Please note:");
+        setQuoteAmount(draft.quoteAmount || "");
+        setQuoteVatRate(draft.quoteVatRate ?? 20);
+        setQuoteStatus(draft.quoteStatus || "Draft");
+        setEditingQuoteId(draft.editingQuoteId || null);
+
+        alert("Backup imported successfully");
+      } catch (error) {
+        console.error("Failed to import backup", error);
+        alert("Could not import backup file");
+      } finally {
+        if (backupFileInputRef.current) {
+          backupFileInputRef.current.value = "";
+        }
+      }
+    };
+
+    reader.readAsText(file);
+  };
   const addJob = () => {
     if (!jobText.trim()) return;
 
@@ -1129,23 +1208,23 @@ export default function Home() {
     setPendingDeleteInvoiceId(null);
   };
 
-  const responsivePage = {
+  const responsivePage: CSSProperties = {
     ...page,
     padding: isMobile ? 12 : 20,
   };
 
-  const responsiveContainer = {
+  const responsiveContainer: CSSProperties = {
     ...container,
     maxWidth: isMobile ? "100%" : 1100,
   };
 
-  const responsiveTopBar = {
+  const responsiveTopBar: CSSProperties = {
     ...topBar,
     alignItems: isMobile ? "flex-start" : "center",
     marginBottom: isMobile ? 16 : 20,
   };
 
-  const responsiveGrid = {
+  const responsiveGrid: CSSProperties = {
     ...grid,
     gridTemplateColumns: isMobile
       ? "1fr"
@@ -1153,7 +1232,7 @@ export default function Home() {
     gap: isMobile ? 14 : 20,
   };
 
-  const responsiveStatsGrid = {
+  const responsiveStatsGrid: CSSProperties = {
     ...statsGrid,
     gridTemplateColumns: isMobile
       ? "repeat(2, minmax(0, 1fr))"
@@ -1162,75 +1241,82 @@ export default function Home() {
     marginBottom: isMobile ? 16 : 20,
   };
 
-  const responsiveCard = {
+  const responsiveCard: CSSProperties = {
     ...card,
     padding: isMobile ? 14 : 18,
     borderRadius: isMobile ? 10 : 12,
   };
 
-  const responsiveQuoteBox = {
+  const responsiveQuoteBox: CSSProperties = {
     ...quoteBox,
     padding: isMobile ? 10 : 12,
   };
 
-  const responsiveCustomerBox = {
+  const responsiveCustomerBox: CSSProperties = {
     ...customerBox,
     padding: isMobile ? 10 : 12,
   };
 
-  const responsiveUnitBox = {
+  const responsiveUnitBox: CSSProperties = {
     ...unitBox,
     padding: isMobile ? 10 : 12,
   };
 
-  const responsiveInput = {
+  const responsiveInput: CSSProperties = {
     ...input,
     padding: isMobile ? 12 : 10,
     fontSize: 16,
   };
-const stackedButtonRow: CSSProperties = {
-  ...buttonRow,
-  flexDirection: (isMobile ? "column" : "row") as const,
-  alignItems: (isMobile ? "stretch" : "center") as const,
-};
 
-const responsiveCheckboxRow: CSSProperties = {
-  ...checkboxRow,
-  flexDirection: (isMobile ? "column" : "row") as const,
-  alignItems: (isMobile ? "flex-start" : "center") as const,
-  gap: isMobile ? 10 : 16,
-};
+  const stackedButtonRow: CSSProperties = {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: isMobile ? "stretch" : "center",
+    flexDirection: isMobile ? "column" : "row",
+  };
 
-const responsiveCustomerHeader: CSSProperties = {
-  ...customerHeader,
-  flexDirection: (isMobile ? "column" : "row") as const,
-  alignItems: (isMobile ? "stretch" : "flex-start") as const,
-};
+  const responsiveCheckboxRow: CSSProperties = {
+    display: "flex",
+    gap: isMobile ? 10 : 16,
+    flexWrap: "wrap",
+    alignItems: isMobile ? "flex-start" : "center",
+    marginBottom: 12,
+    flexDirection: isMobile ? "column" : "row",
+  };
 
-const fullWidthBtn: CSSProperties = {
-  ...btn,
-  width: isMobile ? "100%" : "auto",
-  textAlign: "center",
-};
+  const responsiveCustomerHeader: CSSProperties = {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "flex-start",
+  };
 
-const fullWidthBtnSecondary: CSSProperties = {
-  ...btnSecondary,
-  width: isMobile ? "100%" : "auto",
-  textAlign: "center",
-};
+  const fullWidthBtn: CSSProperties = {
+    ...btn,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center",
+  };
 
-const fullWidthSmallBtn: CSSProperties = {
-  ...smallBtn,
-  width: isMobile ? "100%" : "auto",
-  textAlign: "center",
-};
+  const fullWidthBtnSecondary: CSSProperties = {
+    ...btnSecondary,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center",
+  };
 
-const responsiveDeleteBtn: CSSProperties = {
-  ...deleteBtn,
-  width: isMobile ? "100%" : "auto",
-};
+  const fullWidthSmallBtn: CSSProperties = {
+    ...smallBtn,
+    width: isMobile ? "100%" : "auto",
+    textAlign: "center",
+  };
 
-  const responsiveJobItem = {
+  const responsiveDeleteBtn: CSSProperties = {
+    ...deleteBtn,
+    width: isMobile ? "100%" : "auto",
+  };
+
+  const responsiveJobItem: CSSProperties = {
     ...jobItem,
     padding: isMobile ? 12 : 10,
   };
@@ -1245,6 +1331,49 @@ const responsiveDeleteBtn: CSSProperties = {
             style={{ height: 50, marginBottom: 20, maxWidth: "100%" }}
           />
           <p style={muted}>Loading saved data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!unlocked) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+          <h1 className="text-2xl font-bold text-center mb-2">What Climate</h1>
+          <p className="text-sm text-gray-600 text-center mb-6">
+            Enter password to access the app
+          </p>
+
+          <input
+            type="password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (passwordInput === APP_PASSWORD) {
+                  setUnlocked(true);
+                } else {
+                  alert("Incorrect password");
+                }
+              }
+            }}
+            placeholder="Enter password"
+            className="w-full border rounded-lg px-4 py-3 mb-4"
+          />
+
+          <button
+            onClick={() => {
+              if (passwordInput === APP_PASSWORD) {
+                setUnlocked(true);
+              } else {
+                alert("Incorrect password");
+              }
+            }}
+            className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700"
+          >
+            Unlock App
+          </button>
         </div>
       </div>
     );
@@ -1323,7 +1452,33 @@ const responsiveDeleteBtn: CSSProperties = {
               </button>
             </div>
           </section>
+<section style={responsiveCard}>
+  <h2 style={heading}>Backup & Restore</h2>
+  <p style={{ ...muted, marginBottom: 12 }}>
+    Export your app data to a backup file, or import a previous backup.
+  </p>
 
+  <div style={stackedButtonRow}>
+    <button onClick={exportBackup} style={fullWidthBtn}>
+      Export Backup
+    </button>
+
+    <button
+      onClick={() => backupFileInputRef.current?.click()}
+      style={fullWidthBtnSecondary}
+    >
+      Import Backup
+    </button>
+  </div>
+
+  <input
+    ref={backupFileInputRef}
+    type="file"
+    accept=".json,application/json"
+    onChange={importBackup}
+    style={{ display: "none" }}
+  />
+</section>
           <section style={responsiveCard}>
             <h2 style={heading}>Annual Services Due</h2>
 
@@ -2507,7 +2662,7 @@ const responsiveDeleteBtn: CSSProperties = {
                         Upgraded Job: {invoice.upgradedJobNumber || "None"}
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        Payment Terms: {invoice.paymentTerms || "None"}
+                        Payment Terms: {invoice.paymentTerms || "30 Days"}
                       </div>
 
                       {invoice.applyReverseVat ? (
