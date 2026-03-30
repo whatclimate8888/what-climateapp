@@ -238,6 +238,7 @@ export default function Home() {
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteCustomer, setQuoteCustomer] = useState("");
+const [quoteSiteCustomer, setQuoteSiteCustomer] = useState("");
 const [quoteCustomerAddress, setQuoteCustomerAddress] = useState("");
 const [quoteSiteName, setQuoteSiteName] = useState("");
 const [quoteSiteAddress, setQuoteSiteAddress] = useState("");
