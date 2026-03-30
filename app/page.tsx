@@ -2540,7 +2540,7 @@ const convertQuoteToInvoice = (quote: Quote) => {
    <option value={0}>0% VAT</option>
   <option value={20}>20% VAT</option>
 </select>       
-
+</div>
             {!applyCis ? (
   <input
     placeholder="Subtotal (£)"
