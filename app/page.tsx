@@ -445,7 +445,7 @@ export default function Home() {
     setInvoiceCustomerEmail(matchedCustomer.email || "");
   }, [invoiceCustomer, customers, editingInvoiceId]);
 
-  useEffect(() => {
+    useEffect(() => {
     if (!selectedFgasCustomer) {
       setFgasUnitReports([]);
       return;
@@ -454,7 +454,9 @@ export default function Home() {
     const savedReport = savedFgasReports[selectedFgasCustomer.name];
 
     if (savedReport) {
-      setFgasReportDate(savedReport.reportDate || new Date().toISOString().slice(0, 10));
+      setFgasReportDate(
+        savedReport.reportDate || new Date().toISOString().slice(0, 10)
+      );
       setFgasEngineerName(savedReport.engineerName || "");
       setFgasEngineerCertificate(savedReport.engineerCertificate || "");
       setFgasCompanyCertificate(savedReport.companyCertificate || "");
@@ -477,25 +479,35 @@ export default function Home() {
     setFgasLeakCheckResult("No leaks found");
     setFgasWorkCarriedOut("");
     setFgasUnitReports(externalUnits.map(createFgasUnitReport));
-  }, [selectedFgasCustomer, savedFgasReports]);
+  }, [selectedFgasCustomer]);
 
   useEffect(() => {
     if (!loaded || !fgasCustomer) return;
 
-    setSavedFgasReports((prev) => ({
-      ...prev,
-      [fgasCustomer]: {
-        customer: fgasCustomer,
-        reportDate: fgasReportDate,
-        engineerName: fgasEngineerName,
-        engineerCertificate: fgasEngineerCertificate,
-        companyCertificate: fgasCompanyCertificate,
-        visitNotes: fgasVisitNotes,
-        leakCheckResult: fgasLeakCheckResult,
-        workCarriedOut: fgasWorkCarriedOut,
-        unitReports: fgasUnitReports,
-      },
-    }));
+    const nextReport: FGasReportDraft = {
+      customer: fgasCustomer,
+      reportDate: fgasReportDate,
+      engineerName: fgasEngineerName,
+      engineerCertificate: fgasEngineerCertificate,
+      companyCertificate: fgasCompanyCertificate,
+      visitNotes: fgasVisitNotes,
+      leakCheckResult: fgasLeakCheckResult,
+      workCarriedOut: fgasWorkCarriedOut,
+      unitReports: fgasUnitReports,
+    };
+
+    setSavedFgasReports((prev) => {
+      const currentReport = prev[fgasCustomer];
+
+      if (JSON.stringify(currentReport) === JSON.stringify(nextReport)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [fgasCustomer]: nextReport,
+      };
+    });
   }, [
     loaded,
     fgasCustomer,
