@@ -1,33 +1,27 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 type InvoiceData = {
   id: string;
   quoteId: string;
-
   customer: string;
   customerAddress: string;
-
+  customerEmail?: string;
   siteName: string;
   siteAddress: string;
-
   description: string;
   createdAt: string;
-
   vatRate: 0 | 20;
   reverseVat: boolean;
   applyCis: boolean;
-
   materials: string;
   labour: string;
   cisPercent: number;
-
   paymentTerms: string;
   poNumber?: string;
-
   status: "Unpaid" | "Paid";
 };
 
@@ -54,76 +48,201 @@ const formatMoney = (value: number) =>
 
 export default function InvoicePreviewPage() {
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("what-climate-current-invoice");
     if (saved) {
       setInvoice(JSON.parse(saved));
     }
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  const totals = useMemo(() => {
+    if (!invoice) {
+      return {
+        materialsValue: 0,
+        labourValue: 0,
+        subtotal: 0,
+        vat: 0,
+        cisDeduction: 0,
+        total: 0,
+      };
+    }
+
+    const materialsValue = toNumber(invoice.materials);
+    const labourValue = toNumber(invoice.labour);
+    const subtotal = materialsValue + labourValue;
+
+    const vat =
+      invoice.reverseVat || invoice.vatRate === 0
+        ? 0
+        : subtotal * (invoice.vatRate / 100);
+
+    const cisDeduction = invoice.applyCis
+      ? labourValue * (invoice.cisPercent / 100)
+      : 0;
+
+    const total = subtotal + vat - cisDeduction;
+
+    return {
+      materialsValue,
+      labourValue,
+      subtotal,
+      vat,
+      cisDeduction,
+      total,
+    };
+  }, [invoice]);
 
   const downloadPDF = async () => {
     const element = document.getElementById("invoice-pdf");
     if (!element || !invoice) return;
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-    });
+    try {
+      setIsDownloading(true);
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdfDoc = new jsPDF("p", "mm", "a4");
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+      });
 
-    const pdfWidth = 210;
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+      const pdfDoc = new jsPDF("p", "mm", "a4");
 
-    pdfDoc.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdfDoc.save(`${invoice.customer}-${invoice.id}-${invoice.createdAt}.pdf`);
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 10;
+      const usableWidth = pageWidth - margin * 2;
+      const scaledHeight = (canvas.height * usableWidth) / canvas.width;
+
+      if (scaledHeight <= pageHeight - margin * 2) {
+        pdfDoc.addImage(imgData, "PNG", margin, margin, usableWidth, scaledHeight);
+      } else {
+        const imgWidth = usableWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = margin;
+
+        pdfDoc.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight - margin * 2;
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight + margin;
+          pdfDoc.addPage();
+          pdfDoc.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight - margin * 2;
+        }
+      }
+
+      pdfDoc.save(`${invoice.customer}-${invoice.id}-${invoice.createdAt}.pdf`);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (!invoice) {
     return <p style={{ padding: 20 }}>No invoice data found.</p>;
   }
 
-  const materialsValue = toNumber(invoice.materials);
-  const labourValue = toNumber(invoice.labour);
+  const responsivePage: CSSProperties = {
+    ...page,
+    padding: isMobile ? 12 : 24,
+  };
 
-  const subtotal = materialsValue + labourValue;
+  const responsiveActionBar: CSSProperties = {
+    ...actionBar,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "center",
+  };
 
-  const vat =
-    invoice.reverseVat || invoice.vatRate === 0
-      ? 0
-      : subtotal * (invoice.vatRate / 100);
+  const responsivePdf: CSSProperties = {
+    ...pdf,
+    padding: isMobile ? 18 : 40,
+    margin: isMobile ? "0 auto 20px" : "20px auto",
+    minHeight: "auto",
+    borderRadius: isMobile ? 12 : 0,
+  };
 
-  const cisDeduction = invoice.applyCis
-    ? labourValue * (invoice.cisPercent / 100)
-    : 0;
+  const responsiveHeader: CSSProperties = {
+    ...header,
+    flexDirection: isMobile ? "column" : "row",
+    gap: isMobile ? 18 : 24,
+    alignItems: "flex-start",
+  };
 
-  const total = subtotal + vat - cisDeduction;
+  const responsiveCompany: CSSProperties = {
+    ...company,
+    textAlign: isMobile ? "left" : "right",
+    width: isMobile ? "100%" : "auto",
+  };
+
+  const responsiveTitle: CSSProperties = {
+    ...title,
+    fontSize: isMobile ? 28 : 42,
+    marginTop: isMobile ? 22 : 28,
+    marginBottom: isMobile ? 14 : 10,
+  };
+
+  const responsiveRow: CSSProperties = {
+    ...row,
+    flexDirection: isMobile ? "column" : "row",
+    gap: isMobile ? 14 : 24,
+  };
+
+  const responsiveBox: CSSProperties = {
+    ...infoBox,
+    width: "100%",
+  };
+
+  const responsiveMetaBox: CSSProperties = {
+    ...metaBox,
+    textAlign: isMobile ? "left" : "center",
+    fontSize: isMobile ? 13 : 14,
+    marginTop: isMobile ? 18 : 20,
+    marginBottom: isMobile ? 22 : 30,
+  };
+
+  const responsiveTotalsWrap: CSSProperties = {
+    ...totalsWrap,
+    justifyContent: isMobile ? "stretch" : "flex-end",
+  };
+
+  const responsiveSummaryTable: CSSProperties = {
+    ...summaryTable,
+    width: isMobile ? "100%" : 360,
+  };
 
   return (
-    <div style={page}>
-      <div style={actionBar}>
-        <button
-          onClick={() => (window.location.href = "/")}
-          style={backBtn}
-        >
+    <div style={responsivePage}>
+      <div style={responsiveActionBar}>
+        <button onClick={() => (window.location.href = "/")} style={backBtn}>
           ← Back
         </button>
 
-        <button onClick={downloadPDF} style={downloadBtn}>
-          Download PDF
+        <button onClick={downloadPDF} style={downloadBtn} disabled={isDownloading}>
+          {isDownloading ? "Preparing PDF..." : "Download PDF"}
         </button>
       </div>
 
-      <div id="invoice-pdf" style={pdf}>
-        <div style={header}>
+      <div id="invoice-pdf" style={responsivePdf}>
+        <div style={responsiveHeader}>
           <div style={logoWrap}>
             <img src="/logo.png" alt="What Climate" style={logoImg} />
           </div>
 
-          <div style={company}>
-            <div>{COMPANY.name}</div>
+          <div style={responsiveCompany}>
+            <div style={companyName}>{COMPANY.name}</div>
             <div>{COMPANY.address1}</div>
             <div>{COMPANY.address2}</div>
             <div>{COMPANY.address3}</div>
@@ -131,15 +250,15 @@ export default function InvoicePreviewPage() {
             <div style={{ marginTop: 10 }}>{COMPANY.mobile}</div>
             <div>{COMPANY.phone}</div>
 
-            <div style={{ marginTop: 10, color: "blue" }}>
+            <div style={{ marginTop: 10, color: "#2563eb", wordBreak: "break-word" }}>
               {COMPANY.email}
             </div>
           </div>
         </div>
 
-        <h1 style={title}>Invoice</h1>
+        <h1 style={responsiveTitle}>Invoice</h1>
 
-        <div style={metaBox}>
+        <div style={responsiveMetaBox}>
           <div>
             <strong>Company Number:</strong> {COMPANY.companyNumber}
           </div>
@@ -151,87 +270,150 @@ export default function InvoicePreviewPage() {
           </div>
         </div>
 
-        <div style={row}>
-          <div style={{ width: "45%" }}>
+        <div style={invoiceInfoBar}>
+          <div>
+            <strong>Invoice No:</strong> {invoice.id}
+          </div>
+          <div>
+            <strong>Date:</strong> {invoice.createdAt}
+          </div>
+          <div>
+            <strong>Status:</strong> {invoice.status}
+          </div>
+        </div>
+
+        <div style={responsiveRow}>
+          <div style={responsiveBox}>
             <div style={boxHeader}>Customer Details</div>
-            <div>{invoice.customer}</div>
-            <div>{invoice.customerAddress || "No address"}</div>
+            <div style={boxBody}>
+              <div>{invoice.customer || "Not provided"}</div>
+              <div style={{ whiteSpace: "pre-wrap" }}>
+                {invoice.customerAddress || "No address"}
+              </div>
+              {invoice.customerEmail ? <div>{invoice.customerEmail}</div> : null}
+            </div>
           </div>
 
-          <div style={{ width: "45%" }}>
+          <div style={responsiveBox}>
+            <div style={boxHeader}>Site Details</div>
+            <div style={boxBody}>
+              <div>{invoice.siteName || "Not provided"}</div>
+              <div style={{ whiteSpace: "pre-wrap" }}>
+                {invoice.siteAddress || "No address"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={responsiveRow}>
+          <div style={responsiveBox}>
             <div style={boxHeader}>Invoice Details</div>
-            <div>
-              <strong>Invoice No:</strong> {invoice.id}
+            <div style={boxBody}>
+              <div>
+                <strong>Payment Terms:</strong> {invoice.paymentTerms || "None"}
+              </div>
+              <div>
+                <strong>PO / Order No:</strong> {invoice.poNumber || "None"}
+              </div>
+              {invoice.quoteId ? (
+                <div>
+                  <strong>Quote Ref:</strong> {invoice.quoteId}
+                </div>
+              ) : null}
             </div>
-            <div>
-              <strong>Date:</strong> {invoice.createdAt}
-            </div>
-            <div>
-              <strong>Payment Terms:</strong> {invoice.paymentTerms || "None"}
-            </div>
-            <div>
-              <strong>PO / Order No:</strong> {invoice.poNumber || "None"}
+          </div>
+
+          <div style={responsiveBox}>
+            <div style={boxHeader}>VAT / CIS Details</div>
+            <div style={boxBody}>
+              <div>
+                <strong>VAT Rate:</strong>{" "}
+                {invoice.reverseVat ? "Reverse Charge" : `${invoice.vatRate}%`}
+              </div>
+              <div>
+                <strong>CIS Applied:</strong> {invoice.applyCis ? "Yes" : "No"}
+              </div>
+              {invoice.applyCis ? (
+                <div>
+                  <strong>CIS Rate:</strong> {invoice.cisPercent}%
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
 
-        <div style={bar}>DESCRIPTION</div>
-
-        <div style={{ marginTop: 16 }}>
-          <div style={descBox}>{invoice.description}</div>
+        <div style={{ marginTop: 24 }}>
+          <div style={boxHeader}>Description of Works</div>
+          <div style={descBox}>
+            <div style={descriptionText}>
+              {invoice.description || "No description provided."}
+            </div>
+          </div>
         </div>
 
-        <div style={bar}>TOTALS</div>
-
-        <div style={totalsWrap}>
-          <div style={summaryTable}>
-            <div style={summaryRow}>
-              <span>Materials</span>
-              <span>{formatMoney(materialsValue)}</span>
+        <div style={{ marginTop: 24 }}>
+          <div style={boxHeader}>Cost Breakdown</div>
+          <div style={tableWrap}>
+            <div style={tableHeaderRow}>
+              <div>Description</div>
+              <div style={{ textAlign: "right" }}>Amount</div>
             </div>
 
-            <div style={summaryRow}>
-              <span>Labour</span>
-              <span>{formatMoney(labourValue)}</span>
+            <div style={tableRow}>
+              <div>Materials</div>
+              <div style={{ textAlign: "right" }}>
+                {formatMoney(totals.materialsValue)}
+              </div>
             </div>
 
+            <div style={tableRow}>
+              <div>Labour</div>
+              <div style={{ textAlign: "right" }}>
+                {formatMoney(totals.labourValue)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={responsiveTotalsWrap}>
+          <div style={responsiveSummaryTable}>
             <div style={summaryRow}>
               <span>Subtotal</span>
-              <span>{formatMoney(subtotal)}</span>
+              <span>{formatMoney(totals.subtotal)}</span>
             </div>
 
             <div style={summaryRow}>
               <span>
                 VAT {invoice.reverseVat ? "(Reverse Charge)" : `(${invoice.vatRate}%)`}
               </span>
-              <span>{formatMoney(vat)}</span>
+              <span>{formatMoney(totals.vat)}</span>
             </div>
 
             {invoice.applyCis ? (
               <div style={summaryRow}>
                 <span>CIS Deduction</span>
-                <span>-{formatMoney(cisDeduction)}</span>
+                <span>-{formatMoney(totals.cisDeduction)}</span>
               </div>
             ) : null}
 
             <div style={summaryGrandTotal}>
               <span>Total</span>
-              <span>{formatMoney(total)}</span>
+              <span>{formatMoney(totals.total)}</span>
             </div>
           </div>
         </div>
 
         {invoice.reverseVat ? (
           <div style={noteBox}>
-            <strong>Reverse VAT Charge:</strong> Customer to account to HMRC
-            for the reverse charge output tax on the VAT rate.
+            <strong>Reverse VAT Charge:</strong> Customer to account to HMRC for
+            the reverse charge output tax on this supply.
           </div>
         ) : null}
 
         {invoice.applyCis ? (
           <div style={noteBox}>
             <strong>CIS Deduction Applied:</strong> This invoice includes a CIS
-            deduction.
+            deduction from the labour element at {invoice.cisPercent}%.
           </div>
         ) : null}
 
@@ -249,32 +431,34 @@ export default function InvoicePreviewPage() {
   );
 }
 
-/* STYLES */
 const page: CSSProperties = {
-  background: "#eee",
-  padding: 40,
+  background: "#eeeeee",
+  minHeight: "100vh",
+  padding: 24,
 };
 
 const actionBar: CSSProperties = {
   display: "flex",
-  gap: 10,
+  gap: 12,
   alignItems: "center",
-  marginBottom: 10,
+  maxWidth: 900,
+  margin: "0 auto 16px",
 };
 
 const pdf: CSSProperties = {
-  background: "#fff",
+  background: "#ffffff",
   padding: 40,
-  maxWidth: 794,
+  maxWidth: 900,
   minHeight: 1123,
   margin: "20px auto",
   boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+  boxSizing: "border-box",
 };
 
 const backBtn: CSSProperties = {
-  padding: "8px 12px",
-  background: "#ddd",
-  color: "#000",
+  padding: "10px 14px",
+  background: "#dddddd",
+  color: "#000000",
   border: "none",
   borderRadius: 8,
   cursor: "pointer",
@@ -283,7 +467,7 @@ const backBtn: CSSProperties = {
 const downloadBtn: CSSProperties = {
   padding: "10px 16px",
   background: "#f97316",
-  color: "#fff",
+  color: "#ffffff",
   border: "none",
   borderRadius: 8,
   cursor: "pointer",
@@ -297,43 +481,22 @@ const header: CSSProperties = {
 
 const company: CSSProperties = {
   textAlign: "right",
+  lineHeight: 1.6,
+  fontSize: 14,
+};
+
+const companyName: CSSProperties = {
+  fontWeight: 700,
+  fontSize: 16,
 };
 
 const title: CSSProperties = {
   textAlign: "center",
   color: "#4bb5e8",
   fontSize: 42,
-  fontWeight: "bold",
+  fontWeight: 700,
   marginTop: 28,
   marginBottom: 10,
-};
-
-const row: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginTop: 20,
-};
-
-const boxHeader: CSSProperties = {
-  background: "#d1d1d1",
-  padding: 8,
-  fontWeight: "bold",
-  marginBottom: 8,
-};
-
-const bar: CSSProperties = {
-  background: "#d1d1d1",
-  padding: 12,
-  marginTop: 24,
-  fontWeight: "bold",
-  fontSize: 16,
-};
-
-const descBox: CSSProperties = {
-  border: "1px dashed #ccc",
-  padding: 12,
-  minHeight: 140,
-  lineHeight: 1.6,
 };
 
 const metaBox: CSSProperties = {
@@ -344,25 +507,76 @@ const metaBox: CSSProperties = {
   fontSize: 14,
 };
 
-const noteBox: CSSProperties = {
-  marginTop: 24,
+const invoiceInfoBar: CSSProperties = {
+  background: "#f3f4f6",
+  border: "1px solid #d1d5db",
   padding: 12,
-  background: "#f7f7f7",
-  borderLeft: "4px solid #f97316",
-  lineHeight: 1.6,
+  marginTop: 20,
+  display: "grid",
+  gap: 8,
+  lineHeight: 1.5,
 };
 
-const logoWrap: CSSProperties = {
-  width: 220,
-  height: 60,
+const row: CSSProperties = {
   display: "flex",
-  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 24,
+  marginTop: 24,
 };
 
-const logoImg: CSSProperties = {
-  width: 220,
-  height: "auto",
-  display: "block",
+const infoBox: CSSProperties = {
+  flex: 1,
+};
+
+const boxHeader: CSSProperties = {
+  background: "#d1d5db",
+  padding: "10px 12px",
+  fontWeight: 700,
+  marginBottom: 0,
+};
+
+const boxBody: CSSProperties = {
+  border: "1px solid #d1d5db",
+  borderTop: "none",
+  padding: 12,
+  minHeight: 90,
+  lineHeight: 1.7,
+};
+
+const descBox: CSSProperties = {
+  border: "1px solid #d1d5db",
+  borderTop: "none",
+  padding: 16,
+  minHeight: 140,
+  lineHeight: 1.7,
+};
+
+const descriptionText: CSSProperties = {
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+};
+
+const tableWrap: CSSProperties = {
+  border: "1px solid #d1d5db",
+  borderTop: "none",
+};
+
+const tableHeaderRow: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 140px",
+  gap: 12,
+  padding: "12px 16px",
+  background: "#f9fafb",
+  fontWeight: 700,
+  borderBottom: "1px solid #e5e7eb",
+};
+
+const tableRow: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 140px",
+  gap: 12,
+  padding: "12px 16px",
+  borderBottom: "1px solid #e5e7eb",
 };
 
 const totalsWrap: CSSProperties = {
@@ -372,7 +586,12 @@ const totalsWrap: CSSProperties = {
 };
 
 const summaryTable: CSSProperties = {
-  width: 320,
+  width: 360,
+  border: "1px solid #d1d5db",
+  borderRadius: 10,
+  padding: 16,
+  background: "#fafafa",
+  boxSizing: "border-box",
 };
 
 const summaryRow: CSSProperties = {
@@ -380,7 +599,8 @@ const summaryRow: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   padding: "8px 0",
-  fontSize: 18,
+  gap: 12,
+  fontSize: 16,
 };
 
 const summaryGrandTotal: CSSProperties = {
@@ -390,8 +610,17 @@ const summaryGrandTotal: CSSProperties = {
   marginTop: 14,
   paddingTop: 14,
   borderTop: "2px solid #bbb",
-  fontSize: 30,
-  fontWeight: "bold",
+  gap: 12,
+  fontSize: 24,
+  fontWeight: 700,
+};
+
+const noteBox: CSSProperties = {
+  marginTop: 24,
+  padding: 12,
+  background: "#f7f7f7",
+  borderLeft: "4px solid #f97316",
+  lineHeight: 1.6,
 };
 
 const paymentBox: CSSProperties = {
@@ -403,7 +632,7 @@ const paymentBox: CSSProperties = {
 };
 
 const paymentTitle: CSSProperties = {
-  fontWeight: "bold",
+  fontWeight: 700,
   marginBottom: 8,
   fontSize: 16,
 };
@@ -411,5 +640,20 @@ const paymentTitle: CSSProperties = {
 const statusText: CSSProperties = {
   marginTop: 40,
   fontSize: 13,
-  color: "#555",
+  color: "#555555",
+};
+
+const logoWrap: CSSProperties = {
+  width: 220,
+  maxWidth: "100%",
+  minHeight: 60,
+  display: "flex",
+  alignItems: "center",
+};
+
+const logoImg: CSSProperties = {
+  width: "100%",
+  maxWidth: 220,
+  height: "auto",
+  display: "block",
 };
