@@ -1,27 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 type InvoiceData = {
   id: string;
+  quoteId: string;
+
   customer: string;
-  customerEmail: string;
+  customerAddress: string;
+
+  siteName: string;
   siteAddress: string;
+
   description: string;
   createdAt: string;
-  status: "Unpaid" | "Paid";
-  invoiceVatRate: 0 | 20;
-  applyReverseVat: boolean;
+
+  vatRate: 0 | 20;
+  reverseVat: boolean;
   applyCis: boolean;
-  subtotalAmount: string;
-  materialsAmount: string;
-  labourAmount: string;
-  cisDeductionAmount: string;
-  poNumber: string;
-  upgradedJobNumber: string;
+
+  materials: string;
+  labour: string;
+  cisPercent: number;
+
   paymentTerms: string;
+  poNumber?: string;
+
+  status: "Unpaid" | "Paid";
 };
 
 const COMPANY = {
@@ -78,17 +85,18 @@ export default function InvoicePreviewPage() {
     return <p style={{ padding: 20 }}>No invoice data found.</p>;
   }
 
-  const subtotal = invoice.applyCis
-    ? toNumber(invoice.materialsAmount) + toNumber(invoice.labourAmount)
-    : toNumber(invoice.subtotalAmount);
+  const materialsValue = toNumber(invoice.materials);
+  const labourValue = toNumber(invoice.labour);
+
+  const subtotal = materialsValue + labourValue;
 
   const vat =
-    invoice.applyReverseVat || invoice.invoiceVatRate === 0
+    invoice.reverseVat || invoice.vatRate === 0
       ? 0
-      : subtotal * (invoice.invoiceVatRate / 100);
+      : subtotal * (invoice.vatRate / 100);
 
   const cisDeduction = invoice.applyCis
-    ? toNumber(invoice.cisDeductionAmount)
+    ? labourValue * (invoice.cisPercent / 100)
     : 0;
 
   const total = subtotal + vat - cisDeduction;
@@ -147,8 +155,7 @@ export default function InvoicePreviewPage() {
           <div style={{ width: "45%" }}>
             <div style={boxHeader}>Customer Details</div>
             <div>{invoice.customer}</div>
-            <div>{invoice.siteAddress}</div>
-            <div>{invoice.customerEmail}</div>
+            <div>{invoice.customerAddress || "No address"}</div>
           </div>
 
           <div style={{ width: "45%" }}>
@@ -165,10 +172,6 @@ export default function InvoicePreviewPage() {
             <div>
               <strong>PO / Order No:</strong> {invoice.poNumber || "None"}
             </div>
-            <div>
-              <strong>Upgraded Job No:</strong>{" "}
-              {invoice.upgradedJobNumber || "None"}
-            </div>
           </div>
         </div>
 
@@ -182,18 +185,15 @@ export default function InvoicePreviewPage() {
 
         <div style={totalsWrap}>
           <div style={summaryTable}>
-            {invoice.applyCis ? (
-              <>
-                <div style={summaryRow}>
-                  <span>Materials</span>
-                  <span>{formatMoney(toNumber(invoice.materialsAmount))}</span>
-                </div>
-                <div style={summaryRow}>
-                  <span>Labour</span>
-                  <span>{formatMoney(toNumber(invoice.labourAmount))}</span>
-                </div>
-              </>
-            ) : null}
+            <div style={summaryRow}>
+              <span>Materials</span>
+              <span>{formatMoney(materialsValue)}</span>
+            </div>
+
+            <div style={summaryRow}>
+              <span>Labour</span>
+              <span>{formatMoney(labourValue)}</span>
+            </div>
 
             <div style={summaryRow}>
               <span>Subtotal</span>
@@ -202,10 +202,7 @@ export default function InvoicePreviewPage() {
 
             <div style={summaryRow}>
               <span>
-                VAT{" "}
-                {invoice.applyReverseVat
-                  ? "(Reverse Charge)"
-                  : `(${invoice.invoiceVatRate}%)`}
+                VAT {invoice.reverseVat ? "(Reverse Charge)" : `(${invoice.vatRate}%)`}
               </span>
               <span>{formatMoney(vat)}</span>
             </div>
@@ -224,48 +221,48 @@ export default function InvoicePreviewPage() {
           </div>
         </div>
 
-        {invoice.applyReverseVat ? (
+        {invoice.reverseVat ? (
           <div style={noteBox}>
             <strong>Reverse VAT Charge:</strong> Customer to account to HMRC
             for the reverse charge output tax on the VAT rate.
           </div>
         ) : null}
-{invoice.applyCis ? (
-  <div style={noteBox}>
-    <strong>CIS Deduction Applied:</strong> This invoice includes a CIS
-    deduction.
-  </div>
-) : null}
 
-<div style={paymentBox}>
-  <div style={paymentTitle}>Payment Details</div>
-  <div>Bank: Lloyds Bank</div>
-  <div>Account Name: What Climate Limited</div>
-  <div>Sort Code: 30-96-26</div>
-  <div>Account Number: 34584360</div>
-</div>
+        {invoice.applyCis ? (
+          <div style={noteBox}>
+            <strong>CIS Deduction Applied:</strong> This invoice includes a CIS
+            deduction.
+          </div>
+        ) : null}
 
-<div style={statusText}>Status: {invoice.status}</div>
-        
+        <div style={paymentBox}>
+          <div style={paymentTitle}>Payment Details</div>
+          <div>Bank: Lloyds Bank</div>
+          <div>Account Name: What Climate Limited</div>
+          <div>Sort Code: 30-96-26</div>
+          <div>Account Number: 34584360</div>
+        </div>
+
+        <div style={statusText}>Status: {invoice.status}</div>
       </div>
     </div>
   );
 }
 
 /* STYLES */
-const page: React.CSSProperties = {
+const page: CSSProperties = {
   background: "#eee",
   padding: 40,
 };
 
-const actionBar: React.CSSProperties = {
+const actionBar: CSSProperties = {
   display: "flex",
   gap: 10,
   alignItems: "center",
   marginBottom: 10,
 };
 
-const pdf: React.CSSProperties = {
+const pdf: CSSProperties = {
   background: "#fff",
   padding: 40,
   maxWidth: 794,
@@ -274,7 +271,7 @@ const pdf: React.CSSProperties = {
   boxShadow: "0 0 10px rgba(0,0,0,0.1)",
 };
 
-const backBtn: React.CSSProperties = {
+const backBtn: CSSProperties = {
   padding: "8px 12px",
   background: "#ddd",
   color: "#000",
@@ -283,7 +280,7 @@ const backBtn: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const downloadBtn: React.CSSProperties = {
+const downloadBtn: CSSProperties = {
   padding: "10px 16px",
   background: "#f97316",
   color: "#fff",
@@ -292,17 +289,17 @@ const downloadBtn: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const header: React.CSSProperties = {
+const header: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
 };
 
-const company: React.CSSProperties = {
+const company: CSSProperties = {
   textAlign: "right",
 };
 
-const title: React.CSSProperties = {
+const title: CSSProperties = {
   textAlign: "center",
   color: "#4bb5e8",
   fontSize: 42,
@@ -311,20 +308,20 @@ const title: React.CSSProperties = {
   marginBottom: 10,
 };
 
-const row: React.CSSProperties = {
+const row: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   marginTop: 20,
 };
 
-const boxHeader: React.CSSProperties = {
+const boxHeader: CSSProperties = {
   background: "#d1d1d1",
   padding: 8,
   fontWeight: "bold",
   marginBottom: 8,
 };
 
-const bar: React.CSSProperties = {
+const bar: CSSProperties = {
   background: "#d1d1d1",
   padding: 12,
   marginTop: 24,
@@ -332,14 +329,14 @@ const bar: React.CSSProperties = {
   fontSize: 16,
 };
 
-const descBox: React.CSSProperties = {
+const descBox: CSSProperties = {
   border: "1px dashed #ccc",
   padding: 12,
   minHeight: 140,
   lineHeight: 1.6,
 };
 
-const metaBox: React.CSSProperties = {
+const metaBox: CSSProperties = {
   textAlign: "center",
   marginTop: 20,
   marginBottom: 30,
@@ -347,7 +344,7 @@ const metaBox: React.CSSProperties = {
   fontSize: 14,
 };
 
-const noteBox: React.CSSProperties = {
+const noteBox: CSSProperties = {
   marginTop: 24,
   padding: 12,
   background: "#f7f7f7",
@@ -355,30 +352,30 @@ const noteBox: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
-const logoWrap: React.CSSProperties = {
+const logoWrap: CSSProperties = {
   width: 220,
   height: 60,
   display: "flex",
   alignItems: "center",
 };
 
-const logoImg: React.CSSProperties = {
+const logoImg: CSSProperties = {
   width: 220,
   height: "auto",
   display: "block",
 };
 
-const totalsWrap: React.CSSProperties = {
+const totalsWrap: CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
   marginTop: 24,
 };
 
-const summaryTable: React.CSSProperties = {
+const summaryTable: CSSProperties = {
   width: 320,
 };
 
-const summaryRow: React.CSSProperties = {
+const summaryRow: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -386,7 +383,7 @@ const summaryRow: React.CSSProperties = {
   fontSize: 18,
 };
 
-const summaryGrandTotal: React.CSSProperties = {
+const summaryGrandTotal: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -396,7 +393,8 @@ const summaryGrandTotal: React.CSSProperties = {
   fontSize: 30,
   fontWeight: "bold",
 };
-const paymentBox: React.CSSProperties = {
+
+const paymentBox: CSSProperties = {
   marginTop: 30,
   padding: 16,
   background: "#f7f7f7",
@@ -404,12 +402,13 @@ const paymentBox: React.CSSProperties = {
   lineHeight: 1.8,
 };
 
-const paymentTitle: React.CSSProperties = {
+const paymentTitle: CSSProperties = {
   fontWeight: "bold",
   marginBottom: 8,
   fontSize: 16,
 };
-const statusText: React.CSSProperties = {
+
+const statusText: CSSProperties = {
   marginTop: 40,
   fontSize: 13,
   color: "#555",
