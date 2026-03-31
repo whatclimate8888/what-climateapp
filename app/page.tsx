@@ -37,10 +37,13 @@ type Customer = {
   annualServiceDueDate: string;
   units: Unit[];
 };
+
 type Quote = {
   id: string;
   customer: string;
   customerAddress: string;
+  customerEmail: string;
+  siteCustomer: string;
   siteName: string;
   siteAddress: string;
   description: string;
@@ -54,27 +57,21 @@ type Quote = {
 type Invoice = {
   id: string;
   quoteId: string;
-
   customer: string;
   customerAddress: string;
-
+  customerEmail: string;
   siteName: string;
   siteAddress: string;
-
   description: string;
   createdAt: string;
-
   vatRate: 0 | 20;
   reverseVat: boolean;
   applyCis: boolean;
-
   materials: string;
   labour: string;
-    cisPercent: number;
-
+  cisPercent: number;
   paymentTerms: string;
   poNumber: string;
-
   status: "Unpaid" | "Paid";
 };
 
@@ -101,7 +98,6 @@ type QuoteDraft = {
   editingQuoteId: string | null;
 };
 
-
 type FGasUnitReport = {
   id: string;
   manufacturer: string;
@@ -117,6 +113,18 @@ type FGasUnitReport = {
   refrigerantRecovered: string;
   actionsTaken: string;
   notes: string;
+};
+
+type FGasReportDraft = {
+  customer: string;
+  reportDate: string;
+  engineerName: string;
+  engineerCertificate: string;
+  companyCertificate: string;
+  visitNotes: string;
+  leakCheckResult: string;
+  workCarriedOut: string;
+  unitReports: FGasUnitReport[];
 };
 
 const DAYS = [
@@ -143,7 +151,9 @@ const MANUFACTURERS = [
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createId = () =>
+  `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 const toNumber = (value: string) => Number(value || 0);
 
 const emptyUnit = (): Unit => ({
@@ -183,7 +193,6 @@ const formatMoney = (value: number) =>
 const getInvoiceValues = (invoice: Invoice) => {
   const materialsVal = Number(invoice.materials || 0);
   const labourVal = Number(invoice.labour || 0);
-
   const subtotal = materialsVal + labourVal;
 
   const cis = invoice.applyCis
@@ -210,8 +219,10 @@ const escapeHtml = (value: string) =>
 
 export default function Home() {
   const APP_PASSWORD = "0070";
+
   const [passwordInput, setPasswordInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
+
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [activeSection, setActiveSection] = useState<
     "jobs" | "customers" | "quotes" | "invoices" | "fgas"
@@ -239,39 +250,30 @@ export default function Home() {
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteCustomer, setQuoteCustomer] = useState("");
-const [quoteSiteCustomer, setQuoteSiteCustomer] = useState("");
-const [quoteCustomerAddress, setQuoteCustomerAddress] = useState("");
-const [quoteSiteName, setQuoteSiteName] = useState("");
-const [quoteSiteAddress, setQuoteSiteAddress] = useState("");
-const [quoteDescription, setQuoteDescription] = useState("");
-const [quoteNote, setQuoteNote] = useState("Please note:");
-const [quoteAmount, setQuoteAmount] = useState("");
-const [quoteVatRate, setQuoteVatRate] = useState<0 | 20>(20);
+  const [quoteSiteCustomer, setQuoteSiteCustomer] = useState("");
+  const [quoteDescription, setQuoteDescription] = useState("");
+  const [quoteNote, setQuoteNote] = useState("Please note:");
+  const [quoteAmount, setQuoteAmount] = useState("");
+  const [quoteVatRate, setQuoteVatRate] = useState<0 | 20>(20);
   const [quoteStatus, setQuoteStatus] = useState<Quote["status"]>("Draft");
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-
-const [invoiceCustomer, setInvoiceCustomer] = useState("");
-const [invoiceCustomerAddress, setInvoiceCustomerAddress] = useState("");
-
-const [invoiceSiteName, setInvoiceSiteName] = useState("");
-const [invoiceSiteAddress, setInvoiceSiteAddress] = useState("");
-
-const [invoiceDescription, setInvoiceDescription] = useState("");
-
-const [materials, setMaterials] = useState("");
-const [labour, setLabour] = useState("");
-
-const [invoiceVatRate, setInvoiceVatRate] = useState<0 | 20>(20);
-const [reverseVat, setReverseVat] = useState(false);
-
-const [applyCis, setApplyCis] = useState(false);
-const [cisPercent, setCisPercent] = useState(20);
-
-const [invoicePaymentTerms, setInvoicePaymentTerms] = useState("30 Days");
-const [poNumber, setPoNumber] = useState("");
-const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [invoiceCustomer, setInvoiceCustomer] = useState("");
+  const [invoiceCustomerAddress, setInvoiceCustomerAddress] = useState("");
+  const [invoiceCustomerEmail, setInvoiceCustomerEmail] = useState("");
+  const [invoiceSiteName, setInvoiceSiteName] = useState("");
+  const [invoiceSiteAddress, setInvoiceSiteAddress] = useState("");
+  const [invoiceDescription, setInvoiceDescription] = useState("");
+  const [materials, setMaterials] = useState("");
+  const [labour, setLabour] = useState("");
+  const [invoiceVatRate, setInvoiceVatRate] = useState<0 | 20>(20);
+  const [reverseVat, setReverseVat] = useState(false);
+  const [applyCis, setApplyCis] = useState(false);
+  const [cisPercent, setCisPercent] = useState(20);
+  const [invoicePaymentTerms, setInvoicePaymentTerms] = useState("30 Days");
+  const [poNumber, setPoNumber] = useState("");
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   const [fgasCustomer, setFgasCustomer] = useState("");
   const [fgasReportDate, setFgasReportDate] = useState(
@@ -284,20 +286,31 @@ const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [fgasLeakCheckResult, setFgasLeakCheckResult] = useState("No leaks found");
   const [fgasWorkCarriedOut, setFgasWorkCarriedOut] = useState("");
   const [fgasUnitReports, setFgasUnitReports] = useState<FGasUnitReport[]>([]);
+  const [savedFgasReports, setSavedFgasReports] = useState<
+    Record<string, FGasReportDraft>
+  >({});
 
-  const [pendingDeleteJobId, setPendingDeleteJobId] = useState<string | null>(null);
-  const [pendingDeleteCustomerName, setPendingDeleteCustomerName] = useState<string | null>(null);
-  const [pendingDeleteQuoteId, setPendingDeleteQuoteId] = useState<string | null>(null);
-  const [pendingDeleteInvoiceId, setPendingDeleteInvoiceId] = useState<string | null>(null);
+  const [pendingDeleteJobId, setPendingDeleteJobId] = useState<string | null>(
+    null
+  );
+  const [pendingDeleteCustomerName, setPendingDeleteCustomerName] = useState<
+    string | null
+  >(null);
+  const [pendingDeleteQuoteId, setPendingDeleteQuoteId] = useState<string | null>(
+    null
+  );
+  const [pendingDeleteInvoiceId, setPendingDeleteInvoiceId] = useState<
+    string | null
+  >(null);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const customersSectionRef = useRef<HTMLElement | null>(null);
   const quotesSectionRef = useRef<HTMLElement | null>(null);
   const invoicesSectionRef = useRef<HTMLElement | null>(null);
   const fgasSectionRef = useRef<HTMLElement | null>(null);
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -317,15 +330,19 @@ const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
       const savedQuotes = localStorage.getItem("what-climate-quotes");
       const savedInvoices = localStorage.getItem("what-climate-invoices");
       const savedQuoteDraft = localStorage.getItem("what-climate-quote-draft");
+      const savedFgasReportsData = localStorage.getItem("what-climate-fgas-reports");
 
       if (savedJobs) setJobs(JSON.parse(savedJobs));
       if (savedCustomers) setCustomers(JSON.parse(savedCustomers));
       if (savedQuotes) setQuotes(JSON.parse(savedQuotes));
       if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+      if (savedFgasReportsData) setSavedFgasReports(JSON.parse(savedFgasReportsData));
 
       if (savedQuoteDraft) {
         const parsedDraft: QuoteDraft = JSON.parse(savedQuoteDraft);
         setQuoteCustomer(parsedDraft.quoteCustomer || "");
+        setQuoteSiteCustomer(parsedDraft.quoteSiteCustomer || "");
+        setQuoteDescription(parsedDraft.quoteDescription || "");
         setQuoteNote(parsedDraft.quoteNote || "Please note:");
         setQuoteAmount(parsedDraft.quoteAmount || "");
         setQuoteVatRate(parsedDraft.quoteVatRate ?? 20);
@@ -368,11 +385,31 @@ const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
     localStorage.setItem("what-climate-invoices", JSON.stringify(invoices));
   }, [invoices, loaded]);
 
-  
-useEffect(() => {
-  if (!loaded) return;
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(
+      "what-climate-fgas-reports",
+      JSON.stringify(savedFgasReports)
+    );
+  }, [savedFgasReports, loaded]);
 
-  const quoteDraft: QuoteDraft = {
+  useEffect(() => {
+    if (!loaded) return;
+
+    const quoteDraft: QuoteDraft = {
+      quoteCustomer,
+      quoteSiteCustomer,
+      quoteDescription,
+      quoteNote,
+      quoteAmount,
+      quoteVatRate,
+      quoteStatus,
+      editingQuoteId,
+    };
+
+    localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
+  }, [
+    loaded,
     quoteCustomer,
     quoteSiteCustomer,
     quoteDescription,
@@ -381,28 +418,7 @@ useEffect(() => {
     quoteVatRate,
     quoteStatus,
     editingQuoteId,
-  };
-
-  localStorage.setItem(
-    "what-climate-quote-draft",
-    JSON.stringify(quoteDraft)
-  );
-}, [
-  loaded,
-  quoteCustomer,
-  quoteSiteCustomer,
-  quoteDescription,
-  quoteNote,
-  quoteAmount,
-  quoteVatRate,
-  quoteStatus,
-  editingQuoteId,
-]);
-  
-    
-  
-
-  
+  ]);
 
   const sortedCustomers = useMemo(() => {
     return customers.slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -413,8 +429,39 @@ useEffect(() => {
   }, [customers, fgasCustomer]);
 
   useEffect(() => {
+    const matchedCustomer = customers.find(
+      (customer) => customer.name === invoiceCustomer
+    );
+
+    if (!matchedCustomer) {
+      if (!editingInvoiceId) {
+        setInvoiceCustomerAddress("");
+        setInvoiceCustomerEmail("");
+      }
+      return;
+    }
+
+    setInvoiceCustomerAddress(matchedCustomer.address || "");
+    setInvoiceCustomerEmail(matchedCustomer.email || "");
+  }, [invoiceCustomer, customers, editingInvoiceId]);
+
+  useEffect(() => {
     if (!selectedFgasCustomer) {
       setFgasUnitReports([]);
+      return;
+    }
+
+    const savedReport = savedFgasReports[selectedFgasCustomer.name];
+
+    if (savedReport) {
+      setFgasReportDate(savedReport.reportDate || new Date().toISOString().slice(0, 10));
+      setFgasEngineerName(savedReport.engineerName || "");
+      setFgasEngineerCertificate(savedReport.engineerCertificate || "");
+      setFgasCompanyCertificate(savedReport.companyCertificate || "");
+      setFgasVisitNotes(savedReport.visitNotes || "");
+      setFgasLeakCheckResult(savedReport.leakCheckResult || "No leaks found");
+      setFgasWorkCarriedOut(savedReport.workCarriedOut || "");
+      setFgasUnitReports(savedReport.unitReports || []);
       return;
     }
 
@@ -422,8 +469,45 @@ useEffect(() => {
       (unit) => unit.unitType === "External"
     );
 
+    setFgasReportDate(new Date().toISOString().slice(0, 10));
+    setFgasEngineerName("");
+    setFgasEngineerCertificate("");
+    setFgasCompanyCertificate("");
+    setFgasVisitNotes("");
+    setFgasLeakCheckResult("No leaks found");
+    setFgasWorkCarriedOut("");
     setFgasUnitReports(externalUnits.map(createFgasUnitReport));
-  }, [selectedFgasCustomer]);
+  }, [selectedFgasCustomer, savedFgasReports]);
+
+  useEffect(() => {
+    if (!loaded || !fgasCustomer) return;
+
+    setSavedFgasReports((prev) => ({
+      ...prev,
+      [fgasCustomer]: {
+        customer: fgasCustomer,
+        reportDate: fgasReportDate,
+        engineerName: fgasEngineerName,
+        engineerCertificate: fgasEngineerCertificate,
+        companyCertificate: fgasCompanyCertificate,
+        visitNotes: fgasVisitNotes,
+        leakCheckResult: fgasLeakCheckResult,
+        workCarriedOut: fgasWorkCarriedOut,
+        unitReports: fgasUnitReports,
+      },
+    }));
+  }, [
+    loaded,
+    fgasCustomer,
+    fgasReportDate,
+    fgasEngineerName,
+    fgasEngineerCertificate,
+    fgasCompanyCertificate,
+    fgasVisitNotes,
+    fgasLeakCheckResult,
+    fgasWorkCarriedOut,
+    fgasUnitReports,
+  ]);
 
   const getNextQuoteId = () => {
     const lastNumber = quotes.length
@@ -441,8 +525,8 @@ useEffect(() => {
   const getNextInvoiceId = () => {
     const lastNumber = invoices.length
       ? Math.max(
-          ...invoices.map((inv) => {
-            const numericPart = Number(inv.id.replace("INV-", ""));
+          ...invoices.map((invoice) => {
+            const numericPart = Number(invoice.id.replace("INV-", ""));
             return Number.isNaN(numericPart) ? 0 : numericPart;
           })
         )
@@ -464,8 +548,8 @@ useEffect(() => {
 
   const resetQuoteForm = () => {
     setQuoteCustomer("");
-setQuoteSiteCustomer("");
-setQuoteDescription("");
+    setQuoteSiteCustomer("");
+    setQuoteDescription("");
     setQuoteNote("Please note:");
     setQuoteAmount("");
     setQuoteVatRate(20);
@@ -475,21 +559,22 @@ setQuoteDescription("");
   };
 
   const resetInvoiceForm = () => {
-  setInvoiceCustomer("");
-  setInvoiceCustomerAddress("");
-  setInvoiceSiteName("");
-  setInvoiceSiteAddress("");
-  setInvoiceDescription("");
-  setInvoiceVatRate(20);
-  setReverseVat(false);
-  setApplyCis(false);
-  setMaterials("");
-  setLabour("");
-  setCisPercent(20);
-  setInvoicePaymentTerms("30 Days");
-  setPoNumber("");
-  setEditingInvoiceId(null);
-};
+    setInvoiceCustomer("");
+    setInvoiceCustomerAddress("");
+    setInvoiceCustomerEmail("");
+    setInvoiceSiteName("");
+    setInvoiceSiteAddress("");
+    setInvoiceDescription("");
+    setInvoiceVatRate(20);
+    setReverseVat(false);
+    setApplyCis(false);
+    setMaterials("");
+    setLabour("");
+    setCisPercent(20);
+    setInvoicePaymentTerms("30 Days");
+    setPoNumber("");
+    setEditingInvoiceId(null);
+  };
 
   const serviceDueCustomers = useMemo(() => {
     return customers.filter((customer) => {
@@ -533,6 +618,7 @@ setQuoteDescription("");
     () => filteredJobs.filter((job) => job.done).length,
     [filteredJobs]
   );
+
   const todaysTotal = filteredJobs.length;
 
   const invoiceValue = useMemo(() => {
@@ -543,19 +629,25 @@ setQuoteDescription("");
   }, [invoices]);
 
   const previewQuote = () => {
-    const matchedCustomer = customers.find((c) => c.name === quoteCustomer);
-    const matchedSiteCustomer = customers.find((c) => c.name === quoteSiteCustomer);
+    if (!quoteCustomer.trim() || !quoteDescription.trim() || !quoteAmount.trim()) {
+      alert("Please complete customer, description and amount before previewing.");
+      return;
+    }
+
+    const matchedSiteCustomer = customers.find(
+      (customer) => customer.name === quoteSiteCustomer
+    );
 
     const quoteNumber = editingQuoteId
       ? editingQuoteId.replace("Q-", "")
-      : String(quotes.length + 1).padStart(2, "0");
+      : getNextQuoteId().replace("Q-", "");
 
     const quote: QuotePreviewData = {
       quoteNumber,
       date: new Date().toLocaleDateString("en-GB"),
       preparedBy: "Luke Page",
       customerName: quoteCustomer || "No customer selected",
-            siteAddress: matchedSiteCustomer?.address || "No site address",
+      siteAddress: matchedSiteCustomer?.address || "No site address",
       description: quoteDescription || "No description",
       note: quoteNote || "Please note:",
       totalPrice: quoteAmount || "0",
@@ -563,15 +655,15 @@ setQuoteDescription("");
     };
 
     const quoteDraft: QuoteDraft = {
-  quoteCustomer,
-  quoteSiteCustomer,
-  quoteDescription,
-  quoteNote,
-  quoteAmount,
-  quoteVatRate,
-  quoteStatus,
-  editingQuoteId,
-};
+      quoteCustomer,
+      quoteSiteCustomer,
+      quoteDescription,
+      quoteNote,
+      quoteAmount,
+      quoteVatRate,
+      quoteStatus,
+      editingQuoteId,
+    };
 
     localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
     localStorage.setItem("what-climate-current-quote", JSON.stringify(quote));
@@ -591,18 +683,12 @@ setQuoteDescription("");
       vatRate: quote.vatRate,
     };
 
-    localStorage.setItem(
-      "what-climate-current-quote",
-      JSON.stringify(previewData)
-    );
+    localStorage.setItem("what-climate-current-quote", JSON.stringify(previewData));
     window.location.href = "/quotes/preview";
   };
 
   const previewInvoice = (invoice: Invoice) => {
-    localStorage.setItem(
-      "what-climate-current-invoice",
-      JSON.stringify(invoice)
-    );
+    localStorage.setItem("what-climate-current-invoice", JSON.stringify(invoice));
     window.location.href = "/invoices/preview";
   };
 
@@ -744,6 +830,7 @@ setQuoteDescription("");
       });
     });
   };
+
   const exportBackup = () => {
     const backupData = {
       exportedAt: new Date().toISOString(),
@@ -751,8 +838,10 @@ setQuoteDescription("");
       customers,
       quotes,
       invoices,
+      savedFgasReports,
       quoteDraft: {
         quoteCustomer,
+        quoteSiteCustomer,
         quoteDescription,
         quoteNote,
         quoteAmount,
@@ -778,7 +867,7 @@ setQuoteDescription("");
     URL.revokeObjectURL(url);
   };
 
-  const importBackup = (event: any) => {
+  const importBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -798,9 +887,15 @@ setQuoteDescription("");
         setCustomers(Array.isArray(parsed.customers) ? parsed.customers : []);
         setQuotes(Array.isArray(parsed.quotes) ? parsed.quotes : []);
         setInvoices(Array.isArray(parsed.invoices) ? parsed.invoices : []);
+        setSavedFgasReports(
+          parsed.savedFgasReports && typeof parsed.savedFgasReports === "object"
+            ? parsed.savedFgasReports
+            : {}
+        );
 
         const draft = parsed.quoteDraft || {};
         setQuoteCustomer(draft.quoteCustomer || "");
+        setQuoteSiteCustomer(draft.quoteSiteCustomer || "");
         setQuoteDescription(draft.quoteDescription || "");
         setQuoteNote(draft.quoteNote || "Please note:");
         setQuoteAmount(draft.quoteAmount || "");
@@ -821,6 +916,7 @@ setQuoteDescription("");
 
     reader.readAsText(file);
   };
+
   const addJob = () => {
     if (!jobText.trim()) return;
 
@@ -871,15 +967,15 @@ setQuoteDescription("");
     if (!name.trim()) return;
 
     const cleanedUnits = units.filter(
-      (u) =>
-        u.manufacturer ||
-        u.model ||
-        u.serial ||
-        u.unitType ||
-        u.refrigerantType ||
-        u.refrigerantCharge ||
-        u.location ||
-        u.co2Equivalent
+      (unit) =>
+        unit.manufacturer ||
+        unit.model ||
+        unit.serial ||
+        unit.unitType ||
+        unit.refrigerantType ||
+        unit.refrigerantCharge ||
+        unit.location ||
+        unit.co2Equivalent
     );
 
     const customerData: Customer = {
@@ -899,67 +995,65 @@ setQuoteDescription("");
         )
       );
 
-      if (editingCustomerName !== name) {
-        setJobs((prev) =>
-          prev.map((job) =>
-            job.customer === editingCustomerName ? { ...job, customer: name } : job
-          )
-        );
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.customer === editingCustomerName ? { ...job, customer: name } : job
+        )
+      );
 
-        setQuotes((prev) =>
-          prev.map((quote) =>
-            quote.customer === editingCustomerName
-              ? {
-                  ...quote,
-                  customer: name,
-                  customerEmail: email,
-                  siteAddress: address,
-                }
-              : quote
-          )
-        );
+      setQuotes((prev) =>
+        prev.map((quote) => {
+          if (quote.customer === editingCustomerName) {
+            return {
+              ...quote,
+              customer: name,
+              customerAddress: address,
+              customerEmail: email,
+            };
+          }
 
-        setInvoices((prev) =>
-          prev.map((invoice) =>
-            invoice.customer === editingCustomerName
-              ? {
-                  ...invoice,
-                  customer: name,
-                  customerEmail: email,
-                  siteAddress: address,
-                }
-              : invoice
-          )
-        );
+          if (quote.siteCustomer === editingCustomerName) {
+            return {
+              ...quote,
+              siteCustomer: name,
+              siteAddress: address,
+            };
+          }
 
-        if (fgasCustomer === editingCustomerName) {
-          setFgasCustomer(name);
-        }
-      } else {
-        setQuotes((prev) =>
-          prev.map((quote) =>
-            quote.customer === name
-              ? {
-                  ...quote,
-                  customerEmail: email,
-                  siteAddress: address,
-                }
-              : quote
-          )
-        );
+          return quote;
+        })
+      );
 
-        setInvoices((prev) =>
-          prev.map((invoice) =>
-            invoice.customer === name
-              ? {
-                  ...invoice,
-                  customerEmail: email,
-                  siteAddress: address,
-                }
-              : invoice
-          )
-        );
+      setInvoices((prev) =>
+        prev.map((invoice) =>
+          invoice.customer === editingCustomerName
+            ? {
+                ...invoice,
+                customer: name,
+                customerAddress: address,
+                customerEmail: email,
+              }
+            : invoice
+        )
+      );
+
+      if (fgasCustomer === editingCustomerName) {
+        setFgasCustomer(name);
       }
+
+      setSavedFgasReports((prev) => {
+        if (!prev[editingCustomerName]) return prev;
+
+        const updated = { ...prev };
+        updated[name] = {
+          ...updated[editingCustomerName],
+          customer: name,
+        };
+        if (name !== editingCustomerName) {
+          delete updated[editingCustomerName];
+        }
+        return updated;
+      });
     } else {
       setCustomers((prev) => [...prev, customerData]);
     }
@@ -995,17 +1089,29 @@ setQuoteDescription("");
     setCustomers((prev) =>
       prev.filter((customer) => customer.name !== customerName)
     );
+
     setJobs((prev) =>
       prev.map((job) =>
         job.customer === customerName ? { ...job, customer: "" } : job
       )
     );
+
     setQuotes((prev) =>
-      prev.filter((quote) => quote.customer !== customerName)
+      prev.filter(
+        (quote) =>
+          quote.customer !== customerName && quote.siteCustomer !== customerName
+      )
     );
+
     setInvoices((prev) =>
       prev.filter((invoice) => invoice.customer !== customerName)
     );
+
+    setSavedFgasReports((prev) => {
+      const updated = { ...prev };
+      delete updated[customerName];
+      return updated;
+    });
 
     if (editingCustomerName === customerName) {
       resetCustomerForm();
@@ -1020,11 +1126,16 @@ setQuoteDescription("");
 
   const saveQuote = () => {
     if (!quoteCustomer.trim() || !quoteDescription.trim() || !quoteAmount.trim()) {
+      alert("Please complete customer, description and amount.");
       return;
     }
 
-    const matchedCustomer = customers.find((c) => c.name === quoteCustomer);
-    const matchedSiteCustomer = customers.find((c) => c.name === quoteSiteCustomer);
+    const matchedCustomer = customers.find(
+      (customer) => customer.name === quoteCustomer
+    );
+    const matchedSiteCustomer = customers.find(
+      (customer) => customer.name === quoteSiteCustomer
+    );
 
     if (editingQuoteId) {
       setQuotes((prev) =>
@@ -1032,9 +1143,11 @@ setQuoteDescription("");
           quote.id === editingQuoteId
             ? {
                 ...quote,
-                                customer: quoteCustomer,
+                customer: quoteCustomer,
+                customerAddress: matchedCustomer?.address || "",
                 customerEmail: matchedCustomer?.email || "",
                 siteCustomer: quoteSiteCustomer,
+                siteName: quoteSiteCustomer,
                 siteAddress: matchedSiteCustomer?.address || "",
                 description: quoteDescription,
                 note: quoteNote,
@@ -1048,9 +1161,11 @@ setQuoteDescription("");
     } else {
       const newQuote: Quote = {
         id: getNextQuoteId(),
-                customer: quoteCustomer,
+        customer: quoteCustomer,
+        customerAddress: matchedCustomer?.address || "",
         customerEmail: matchedCustomer?.email || "",
         siteCustomer: quoteSiteCustomer,
+        siteName: quoteSiteCustomer,
         siteAddress: matchedSiteCustomer?.address || "",
         description: quoteDescription,
         note: quoteNote,
@@ -1101,117 +1216,130 @@ setQuoteDescription("");
   };
 
   const saveInvoice = () => {
-  if (!invoiceCustomer || !invoiceDescription) return;
+    if (!invoiceCustomer.trim() || !invoiceDescription.trim()) {
+      alert("Please complete customer and description.");
+      return;
+    }
 
-  const newInvoice: Invoice = {
-    id: editingInvoiceId || getNextInvoiceId(),
-    quoteId: "",
+    const existingInvoice = editingInvoiceId
+      ? invoices.find((invoice) => invoice.id === editingInvoiceId)
+      : null;
 
-    customer: invoiceCustomer,
-    customerAddress: invoiceCustomerAddress,
+    const invoiceToSave: Invoice = {
+      id: editingInvoiceId || getNextInvoiceId(),
+      quoteId: existingInvoice?.quoteId || "",
+      customer: invoiceCustomer,
+      customerAddress: invoiceCustomerAddress,
+      customerEmail: invoiceCustomerEmail,
+      siteName: invoiceSiteName,
+      siteAddress: invoiceSiteAddress,
+      description: invoiceDescription,
+      createdAt: existingInvoice?.createdAt || new Date().toLocaleDateString("en-GB"),
+      vatRate: reverseVat ? 0 : invoiceVatRate,
+      reverseVat,
+      applyCis,
+      materials,
+      labour,
+      cisPercent,
+      paymentTerms: invoicePaymentTerms,
+      poNumber,
+      status: existingInvoice?.status || "Unpaid",
+    };
 
-    siteName: invoiceSiteName,
-    siteAddress: invoiceSiteAddress,
+    if (editingInvoiceId) {
+      setInvoices((prev) =>
+        prev.map((invoice) =>
+          invoice.id === editingInvoiceId ? invoiceToSave : invoice
+        )
+      );
+    } else {
+      setInvoices((prev) => [invoiceToSave, ...prev]);
+    }
 
-    description: invoiceDescription,
-    createdAt: new Date().toLocaleDateString("en-GB"),
-
-    vatRate: reverseVat ? 0 : invoiceVatRate,
-    reverseVat,
-    applyCis,
-
-    materials,
-    labour,
-    cisPercent,
-
-    paymentTerms: invoicePaymentTerms,
-    poNumber,
-
-    status: "Unpaid",
+    resetInvoiceForm();
+    setActiveSection("invoices");
   };
-
-  if (editingInvoiceId) {
-    setInvoices(prev =>
-      prev.map(inv => inv.id === editingInvoiceId ? newInvoice : inv)
-    );
-  } else {
-    setInvoices(prev => [newInvoice, ...prev]);
-  }
-
-  resetInvoiceForm();
-};
 
   const startEditInvoice = (invoice: Invoice) => {
-  setEditingInvoiceId(invoice.id);
-  setInvoiceCustomer(invoice.customer);
-  setInvoiceCustomerAddress(invoice.customerAddress || "");
-  setInvoiceSiteName(invoice.siteName || "");
-  setInvoiceSiteAddress(invoice.siteAddress || "");
-  setInvoiceDescription(invoice.description);
+    setEditingInvoiceId(invoice.id);
+    setInvoiceCustomer(invoice.customer);
+    setInvoiceCustomerAddress(invoice.customerAddress || "");
+    setInvoiceCustomerEmail(invoice.customerEmail || "");
+    setInvoiceSiteName(invoice.siteName || "");
+    setInvoiceSiteAddress(invoice.siteAddress || "");
+    setInvoiceDescription(invoice.description);
+    setMaterials(invoice.materials || "");
+    setLabour(invoice.labour || "");
+    setInvoiceVatRate(invoice.vatRate);
+    setReverseVat(invoice.reverseVat);
+    setApplyCis(invoice.applyCis);
+    setCisPercent(invoice.cisPercent || 20);
+    setInvoicePaymentTerms(invoice.paymentTerms || "30 Days");
+    setPoNumber(invoice.poNumber || "");
+    setActiveSection("invoices");
 
-  setMaterials(invoice.materials || "");
-  setLabour(invoice.labour || "");
-
-  setInvoiceVatRate(invoice.vatRate);
-  setReverseVat(invoice.reverseVat);
-  setApplyCis(invoice.applyCis);
-  setCisPercent(invoice.cisPercent || 20);
-
-  setInvoicePaymentTerms(invoice.paymentTerms || "30 Days");
-  setPoNumber(invoice.poNumber || "");
-  setActiveSection("invoices");
-
-  requestAnimationFrame(() => {
-    invoicesSectionRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
+    requestAnimationFrame(() => {
+      invoicesSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     });
-  });
-};
-
-const convertQuoteToInvoice = (quote: Quote) => {
-  const existingInvoice = invoices.find(
-    (invoice) => invoice.quoteId === quote.id
-  );
-  if (existingInvoice) return;
-
-  const newInvoice: Invoice = {
-    id: getNextInvoiceId(),
-    quoteId: quote.id,
-
-    customer: quote.customer,
-    customerAddress: quote.customerAddress || "",
-
-    siteName: quote.siteName || "",
-    siteAddress: quote.siteAddress || "",
-
-    description: quote.description,
-    createdAt: new Date().toLocaleDateString("en-GB"),
-
-    vatRate: quote.vatRate,
-    reverseVat: false,
-    applyCis: false,
-
-    materials: quote.amount || "",
-    labour: "",
-    cisPercent: 20,
-
- paymentTerms: "30 Days",
-    poNumber: "",
-
-    status: "Unpaid",
-    
   };
 
-  setInvoices((prev) => [newInvoice, ...prev]);
-  setQuotes((prev) =>
-    prev.map((q) =>
-      q.id === quote.id ? { ...q, status: "Invoiced" } : q
-    )
-  );
-  setActiveSection("invoices");
-};
+  const convertQuoteToInvoice = (quote: Quote) => {
+    const existingInvoice = invoices.find(
+      (invoice) => invoice.quoteId === quote.id
+    );
 
+    if (existingInvoice) {
+      setActiveSection("invoices");
+      requestAnimationFrame(() => {
+        invoicesSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+      return;
+    }
+
+    const newInvoice: Invoice = {
+      id: getNextInvoiceId(),
+      quoteId: quote.id,
+      customer: quote.customer,
+      customerAddress: quote.customerAddress || "",
+      customerEmail: quote.customerEmail || "",
+      siteName: quote.siteName || quote.siteCustomer || "",
+      siteAddress: quote.siteAddress || "",
+      description: quote.description,
+      createdAt: new Date().toLocaleDateString("en-GB"),
+      vatRate: quote.vatRate,
+      reverseVat: false,
+      applyCis: false,
+      materials: quote.amount || "",
+      labour: "",
+      cisPercent: 20,
+      paymentTerms: "30 Days",
+      poNumber: "",
+      status: "Unpaid",
+    };
+
+    setInvoices((prev) => [newInvoice, ...prev]);
+    setQuotes((prev) =>
+      prev.map((currentQuote) =>
+        currentQuote.id === quote.id
+          ? { ...currentQuote, status: "Invoiced" }
+          : currentQuote
+      )
+    );
+    setActiveSection("invoices");
+
+    requestAnimationFrame(() => {
+      invoicesSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
 
   const toggleInvoicePaid = (id: string) => {
     setInvoices((prev) =>
@@ -1478,33 +1606,35 @@ const convertQuoteToInvoice = (quote: Quote) => {
               </button>
             </div>
           </section>
-<section style={responsiveCard}>
-  <h2 style={heading}>Backup & Restore</h2>
-  <p style={{ ...muted, marginBottom: 12 }}>
-    Export your app data to a backup file, or import a previous backup.
-  </p>
 
-  <div style={stackedButtonRow}>
-    <button onClick={exportBackup} style={fullWidthBtn}>
-      Export Backup
-    </button>
+          <section style={responsiveCard}>
+            <h2 style={heading}>Backup & Restore</h2>
+            <p style={{ ...muted, marginBottom: 12 }}>
+              Export your app data to a backup file, or import a previous backup.
+            </p>
 
-    <button
-      onClick={() => backupFileInputRef.current?.click()}
-      style={fullWidthBtnSecondary}
-    >
-      Import Backup
-    </button>
-  </div>
+            <div style={stackedButtonRow}>
+              <button onClick={exportBackup} style={fullWidthBtn}>
+                Export Backup
+              </button>
 
-  <input
-    ref={backupFileInputRef}
-    type="file"
-    accept=".json,application/json"
-    onChange={importBackup}
-    style={{ display: "none" }}
-  />
-</section>
+              <button
+                onClick={() => backupFileInputRef.current?.click()}
+                style={fullWidthBtnSecondary}
+              >
+                Import Backup
+              </button>
+            </div>
+
+            <input
+              ref={backupFileInputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={importBackup}
+              style={{ display: "none" }}
+            />
+          </section>
+
           <section style={responsiveCard}>
             <h2 style={heading}>Annual Services Due</h2>
 
@@ -1715,27 +1845,31 @@ const convertQuoteToInvoice = (quote: Quote) => {
 
             <h3 style={subheading}>Units</h3>
 
-            {units.map((unit, i) => (
-              <div key={i} style={responsiveUnitBox}>
-                <div style={unitTitle}>Unit {i + 1}</div>
+            {units.map((unit, index) => (
+              <div key={index} style={responsiveUnitBox}>
+                <div style={unitTitle}>Unit {index + 1}</div>
 
                 <select
                   value={unit.manufacturer}
                   onChange={(e) =>
-                    updateUnit(i, "manufacturer", e.target.value)
+                    updateUnit(index, "manufacturer", e.target.value)
                   }
                   style={responsiveInput}
                 >
                   <option value="">Select Manufacturer</option>
-                  {MANUFACTURERS.map((m) => (
-                    <option key={m}>{m}</option>
+                  {MANUFACTURERS.map((manufacturer) => (
+                    <option key={manufacturer}>{manufacturer}</option>
                   ))}
                 </select>
 
                 <select
                   value={unit.unitType}
                   onChange={(e) =>
-                    updateUnit(i, "unitType", e.target.value as Unit["unitType"])
+                    updateUnit(
+                      index,
+                      "unitType",
+                      e.target.value as Unit["unitType"]
+                    )
                   }
                   style={responsiveInput}
                 >
@@ -1747,21 +1881,21 @@ const convertQuoteToInvoice = (quote: Quote) => {
                 <input
                   placeholder="Unit Location / Area"
                   value={unit.location}
-                  onChange={(e) => updateUnit(i, "location", e.target.value)}
+                  onChange={(e) => updateUnit(index, "location", e.target.value)}
                   style={responsiveInput}
                 />
 
                 <input
                   placeholder="Model Number"
                   value={unit.model}
-                  onChange={(e) => updateUnit(i, "model", e.target.value)}
+                  onChange={(e) => updateUnit(index, "model", e.target.value)}
                   style={responsiveInput}
                 />
 
                 <input
                   placeholder="Serial Number"
                   value={unit.serial}
-                  onChange={(e) => updateUnit(i, "serial", e.target.value)}
+                  onChange={(e) => updateUnit(index, "serial", e.target.value)}
                   style={responsiveInput}
                 />
 
@@ -1771,7 +1905,7 @@ const convertQuoteToInvoice = (quote: Quote) => {
                       placeholder="Refrigerant Type"
                       value={unit.refrigerantType}
                       onChange={(e) =>
-                        updateUnit(i, "refrigerantType", e.target.value)
+                        updateUnit(index, "refrigerantType", e.target.value)
                       }
                       style={responsiveInput}
                     />
@@ -1780,7 +1914,7 @@ const convertQuoteToInvoice = (quote: Quote) => {
                       placeholder="Refrigerant Charge (kg)"
                       value={unit.refrigerantCharge}
                       onChange={(e) =>
-                        updateUnit(i, "refrigerantCharge", e.target.value)
+                        updateUnit(index, "refrigerantCharge", e.target.value)
                       }
                       style={responsiveInput}
                     />
@@ -1789,7 +1923,7 @@ const convertQuoteToInvoice = (quote: Quote) => {
                       placeholder="CO2 Equivalent (tCO2e)"
                       value={unit.co2Equivalent}
                       onChange={(e) =>
-                        updateUnit(i, "co2Equivalent", e.target.value)
+                        updateUnit(index, "co2Equivalent", e.target.value)
                       }
                       style={responsiveInput}
                     />
@@ -1797,7 +1931,7 @@ const convertQuoteToInvoice = (quote: Quote) => {
                 ) : null}
 
                 {units.length > 1 ? (
-                  <button onClick={() => removeUnit(i)} style={btnGhost}>
+                  <button onClick={() => removeUnit(index)} style={btnGhost}>
                     Remove Unit
                   </button>
                 ) : null}
@@ -1911,8 +2045,8 @@ const convertQuoteToInvoice = (quote: Quote) => {
                     </div>
 
                     {customer.units.length > 0 ? (
-                      customer.units.map((unit, idx) => (
-                        <div key={idx} style={unitLine}>
+                      customer.units.map((unit, index) => (
+                        <div key={index} style={unitLine}>
                           - {unit.unitType || "No type"} |{" "}
                           {unit.location || "No location"} |{" "}
                           {unit.manufacturer || "No manufacturer"} |{" "}
@@ -2294,6 +2428,7 @@ const convertQuoteToInvoice = (quote: Quote) => {
                 </option>
               ))}
             </select>
+
             <select
               value={quoteSiteCustomer}
               onChange={(e) => setQuoteSiteCustomer(e.target.value)}
@@ -2329,14 +2464,13 @@ const convertQuoteToInvoice = (quote: Quote) => {
             />
 
             <select
-  value={quoteVatRate}
-  onChange={(e) => setQuoteVatRate(Number(e.target.value) as 0 | 20)}
-  style={responsiveInput}
->
-  <option value={0}>0% VAT</option>
-  <option value={20}>20% VAT</option>
-</select>
-              
+              value={quoteVatRate}
+              onChange={(e) => setQuoteVatRate(Number(e.target.value) as 0 | 20)}
+              style={responsiveInput}
+            >
+              <option value={0}>0% VAT</option>
+              <option value={20}>20% VAT</option>
+            </select>
 
             <select
               value={quoteStatus}
@@ -2496,93 +2630,111 @@ const convertQuoteToInvoice = (quote: Quote) => {
                 You are editing invoice {editingInvoiceId}
               </div>
             ) : null}
-<input
-  placeholder="Site Name"
-  value={invoiceSiteName}
-  onChange={(e) => setInvoiceSiteName(e.target.value)}
-  style={responsiveInput}
-/>
 
-<input
-  placeholder="Site Address"
-  value={invoiceSiteAddress}
-  onChange={(e) => setInvoiceSiteAddress(e.target.value)}
-  style={responsiveInput}
-/>
+            <select
+              value={invoiceCustomer}
+              onChange={(e) => setInvoiceCustomer(e.target.value)}
+              style={responsiveInput}
+            >
+              <option value="">Select Customer</option>
+              {sortedCustomers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
 
-      <textarea
-  placeholder="Invoice description"
-  value={invoiceDescription}
-  onChange={(e) => setInvoiceDescription(e.target.value)}
-  style={{ ...responsiveInput, minHeight: 90, resize: "vertical" }}
-/>
-            
+            <input
+              placeholder="Customer Address"
+              value={invoiceCustomerAddress}
+              onChange={(e) => setInvoiceCustomerAddress(e.target.value)}
+              style={responsiveInput}
+            />
 
+            <input
+              placeholder="Site Name"
+              value={invoiceSiteName}
+              onChange={(e) => setInvoiceSiteName(e.target.value)}
+              style={responsiveInput}
+            />
 
-  
-<div style={responsiveCheckboxRow}>
-  <label style={checkboxLabel}>
-    <input
-      type="checkbox"
-      checked={reverseVat}
-      onChange={(e) => setReverseVat(e.target.checked)}
-    />
-    Reverse VAT
-  </label>
+            <input
+              placeholder="Site Address"
+              value={invoiceSiteAddress}
+              onChange={(e) => setInvoiceSiteAddress(e.target.value)}
+              style={responsiveInput}
+            />
 
-  <label style={checkboxLabel}>
-    <input
-      type="checkbox"
-      checked={applyCis}
-      onChange={(e) => setApplyCis(e.target.checked)}
-    />
-    CIS Deduction
-  </label>
+            <textarea
+              placeholder="Invoice description"
+              value={invoiceDescription}
+              onChange={(e) => setInvoiceDescription(e.target.value)}
+              style={{ ...responsiveInput, minHeight: 90, resize: "vertical" }}
+            />
 
-   <select
-  value={invoiceVatRate}
-  onChange={(e) => setInvoiceVatRate(Number(e.target.value) as 0 | 20)}
-  style={responsiveInput}
-  disabled={reverseVat}
->
-   <option value={0}>0% VAT</option>
-  <option value={20}>20% VAT</option>
-</select>       
-</div>
+            <div style={responsiveCheckboxRow}>
+              <label style={checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={reverseVat}
+                  onChange={(e) => setReverseVat(e.target.checked)}
+                />
+                Reverse VAT
+              </label>
+
+              <label style={checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={applyCis}
+                  onChange={(e) => setApplyCis(e.target.checked)}
+                />
+                CIS Deduction
+              </label>
+
+              <select
+                value={invoiceVatRate}
+                onChange={(e) =>
+                  setInvoiceVatRate(Number(e.target.value) as 0 | 20)
+                }
+                style={responsiveInput}
+                disabled={reverseVat}
+              >
+                <option value={0}>0% VAT</option>
+                <option value={20}>20% VAT</option>
+              </select>
+            </div>
+
             {!applyCis ? (
-  <input
-    placeholder="Subtotal (£)"
-    value={materials}
-    onChange={(e) => setMaterials(e.target.value)}
-    style={responsiveInput}
-  />
-) : (
-  <>
-    <input
-      placeholder="Materials (£)"
-      value={materials}
-      onChange={(e) => setMaterials(e.target.value)}
-      style={responsiveInput}
-    />
+              <input
+                placeholder="Subtotal (£)"
+                value={materials}
+                onChange={(e) => setMaterials(e.target.value)}
+                style={responsiveInput}
+              />
+            ) : (
+              <>
+                <input
+                  placeholder="Materials (£)"
+                  value={materials}
+                  onChange={(e) => setMaterials(e.target.value)}
+                  style={responsiveInput}
+                />
 
-    <input
-      placeholder="Labour (£)"
-      value={labour}
-      onChange={(e) => setLabour(e.target.value)}
-      style={responsiveInput}
-    />
+                <input
+                  placeholder="Labour (£)"
+                  value={labour}
+                  onChange={(e) => setLabour(e.target.value)}
+                  style={responsiveInput}
+                />
 
-    <input
-      placeholder="CIS %"
-      value={cisPercent}
-      onChange={(e) => setCisPercent(Number(e.target.value))}
-      style={responsiveInput}
-    />
-  </>
-)}
-              
-
-       
+                <input
+                  placeholder="CIS %"
+                  value={cisPercent}
+                  onChange={(e) => setCisPercent(Number(e.target.value))}
+                  style={responsiveInput}
+                />
+              </>
+            )}
 
             <input
               placeholder="Payment Terms"
@@ -2590,12 +2742,13 @@ const convertQuoteToInvoice = (quote: Quote) => {
               onChange={(e) => setInvoicePaymentTerms(e.target.value)}
               style={responsiveInput}
             />
-<input
-  placeholder="PO Number"
-  value={poNumber}
-  onChange={(e) => setPoNumber(e.target.value)}
-  style={responsiveInput}
-/>
+
+            <input
+              placeholder="PO Number"
+              value={poNumber}
+              onChange={(e) => setPoNumber(e.target.value)}
+              style={responsiveInput}
+            />
 
             <div style={stackedButtonRow}>
               <button onClick={saveInvoice} style={fullWidthBtn}>
@@ -2651,74 +2804,62 @@ const convertQuoteToInvoice = (quote: Quote) => {
                           )}
                         </div>
                       </div>
-<div style={{ marginTop: 8 }}>
-  VAT Rate: {invoice.vatRate}%
-</div>
 
-<div style={{ marginTop: 8 }}>
-  Reverse VAT: {invoice.reverseVat ? "Yes" : "No"}
-</div>
+                      <div style={{ marginTop: 8 }}>
+                        Description: {invoice.description || "None"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        VAT Rate: {invoice.vatRate}%
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Reverse VAT: {invoice.reverseVat ? "Yes" : "No"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        CIS Applied: {invoice.applyCis ? "Yes" : "No"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Materials: {formatMoney(toNumber(invoice.materials))}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Labour: {formatMoney(toNumber(invoice.labour))}
+                      </div>
 
-<div style={{ marginTop: 8 }}>
-  CIS Applied: {invoice.applyCis ? "Yes" : "No"}
-</div>
+                      {invoice.applyCis && (
+                        <div style={{ marginTop: 8 }}>
+                          CIS Deduction: -{formatMoney(values.cis)}
+                        </div>
+                      )}
 
-<div style={{ marginTop: 8 }}>
-  Materials: {formatMoney(toNumber(invoice.materials))}
-</div>
-
-<div style={{ marginTop: 8 }}>
-  Labour: {formatMoney(toNumber(invoice.labour))}
-</div>
-
-{invoice.applyCis && (
-  <div style={{ marginTop: 8 }}>
-    CIS Deduction: -{formatMoney(values.cis)}
-  </div>
-)}
-
-<div style={{ marginTop: 8 }}>
-  Subtotal: {formatMoney(values.subtotal)}
-</div>
-
-<div style={{ marginTop: 8 }}>
-  VAT: {formatMoney(values.vat)}
-</div>
-
-
-                      
-
-                      
-
+                      <div style={{ marginTop: 8 }}>
+                        Subtotal: {formatMoney(values.subtotal)}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        VAT: {formatMoney(values.vat)}
+                      </div>
                       <div style={{ marginTop: 8 }}>
                         Total: {formatMoney(values.total)}
                       </div>
-                      <div style={{ marginTop: 8 }}>Created: {invoice.createdAt}</div>
+                      <div style={{ marginTop: 8 }}>
+                        Created: {invoice.createdAt}
+                      </div>
                       <div style={{ marginTop: 8 }}>
                         Email: {invoice.customerEmail || "No email"}
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        Address: {invoice.siteAddress || "No address"}
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        
+                        Address: {invoice.siteAddress || invoice.customerAddress || "No address"}
                       </div>
                       <div style={{ marginTop: 8 }}>
                         Payment Terms: {invoice.paymentTerms || "30 Days"}
                       </div>
-<div style={{ marginTop: 8 }}>
-  PO Number: {invoice.poNumber || "None"}
-</div>
+                      <div style={{ marginTop: 8 }}>
+                        PO Number: {invoice.poNumber || "None"}
+                      </div>
 
                       {invoice.reverseVat && (
-  <div style={{ marginTop: 8 }}>
-    Reverse charge wording will show on the invoice preview.
-  </div>
-)}
-                        
+                        <div style={{ marginTop: 8 }}>
+                          Reverse charge wording will show on the invoice preview.
+                        </div>
+                      )}
 
                       <div style={{ ...stackedButtonRow, marginTop: 12 }}>
                         <button
@@ -2920,21 +3061,6 @@ const letterBtn: CSSProperties = {
   minWidth: 36,
 };
 
-const buttonRow: CSSProperties = {
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-  alignItems: "center",
-};
-
-const checkboxRow: CSSProperties = {
-  display: "flex",
-  gap: 16,
-  flexWrap: "wrap",
-  alignItems: "center",
-  marginBottom: 12,
-};
-
 const checkboxLabel: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -2972,13 +3098,6 @@ const quoteBox: CSSProperties = {
   padding: 12,
   borderRadius: 10,
   marginBottom: 12,
-};
-
-const customerHeader: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 10,
 };
 
 const unitLine: CSSProperties = {
