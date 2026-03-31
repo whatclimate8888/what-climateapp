@@ -352,12 +352,6 @@ export default function InvoicePreviewPage() {
         </div>
 
         <div style={{ marginTop: 24 }}>
-          <div style={boxHeader}>Cost Breakdown</div>
-          <div style={tableWrap}>
-            <div style={tableHeaderRow}>
-              <div>Description</div>
-              <div style={{ textAlign: "right" }}>Amount</div>
-                    <div style={{ marginTop: 24 }}>
           <div style={boxHeader}>
             {invoice.applyCis ? "Cost Breakdown" : "Amount"}
           </div>
@@ -384,8 +378,8 @@ export default function InvoicePreviewPage() {
               </div>
             </div>
           ) : (
-            <div style={descBox}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <div style={amountOnlyBox}>
+              <div style={amountOnlyRow}>
                 <strong>Total Before VAT</strong>
                 <strong>{formatMoney(totals.subtotal)}</strong>
               </div>
@@ -595,6 +589,21 @@ const tableRow: CSSProperties = {
   gap: 12,
   padding: "12px 16px",
   borderBottom: "1px solid #e5e7eb",
+};
+
+const amountOnlyBox: CSSProperties = {
+  border: "1px solid #d1d5db",
+  borderTop: "none",
+  padding: 16,
+  background: "#ffffff",
+};
+
+const amountOnlyRow: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  fontSize: 18,
 };
 
 const totalsWrap: CSSProperties = {
