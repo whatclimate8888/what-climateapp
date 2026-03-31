@@ -70,9 +70,10 @@ type Invoice = {
 
   materials: string;
   labour: string;
-  cisPercent: number;
+    cisPercent: number;
 
   paymentTerms: string;
+  poNumber: string;
 
   status: "Unpaid" | "Paid";
 };
@@ -269,7 +270,7 @@ const [applyCis, setApplyCis] = useState(false);
 const [cisPercent, setCisPercent] = useState(20);
 
 const [invoicePaymentTerms, setInvoicePaymentTerms] = useState("30 Days");
-
+const [poNumber, setPoNumber] = useState("");
 const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   const [fgasCustomer, setFgasCustomer] = useState("");
@@ -486,6 +487,7 @@ setQuoteDescription("");
   setLabour("");
   setCisPercent(20);
   setInvoicePaymentTerms("30 Days");
+  setPoNumber("");
   setEditingInvoiceId(null);
 };
 
@@ -1123,6 +1125,7 @@ setQuoteDescription("");
     cisPercent,
 
     paymentTerms: invoicePaymentTerms,
+    poNumber,
 
     status: "Unpaid",
   };
@@ -1155,6 +1158,7 @@ setQuoteDescription("");
   setCisPercent(invoice.cisPercent || 20);
 
   setInvoicePaymentTerms(invoice.paymentTerms || "30 Days");
+  setPoNumber(invoice.poNumber || "");
   setActiveSection("invoices");
 
   requestAnimationFrame(() => {
@@ -1192,9 +1196,11 @@ const convertQuoteToInvoice = (quote: Quote) => {
     labour: "",
     cisPercent: 20,
 
-    paymentTerms: "30 Days",
+ paymentTerms: "30 Days",
+    poNumber: "",
 
     status: "Unpaid",
+    
   };
 
   setInvoices((prev) => [newInvoice, ...prev]);
@@ -2584,6 +2590,12 @@ const convertQuoteToInvoice = (quote: Quote) => {
               onChange={(e) => setInvoicePaymentTerms(e.target.value)}
               style={responsiveInput}
             />
+<input
+  placeholder="PO Number"
+  value={poNumber}
+  onChange={(e) => setPoNumber(e.target.value)}
+  style={responsiveInput}
+/>
 
             <div style={stackedButtonRow}>
               <button onClick={saveInvoice} style={fullWidthBtn}>
@@ -2697,6 +2709,9 @@ const convertQuoteToInvoice = (quote: Quote) => {
                       <div style={{ marginTop: 8 }}>
                         Payment Terms: {invoice.paymentTerms || "30 Days"}
                       </div>
+<div style={{ marginTop: 8 }}>
+  PO Number: {invoice.poNumber || "None"}
+</div>
 
                       {invoice.reverseVat && (
   <div style={{ marginTop: 8 }}>
