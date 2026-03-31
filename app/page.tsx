@@ -445,15 +445,49 @@ export default function Home() {
     setInvoiceCustomerEmail(matchedCustomer.email || "");
   }, [invoiceCustomer, customers, editingInvoiceId]);
 
-    useEffect(() => {
+      useEffect(() => {
     if (!selectedFgasCustomer) {
       setFgasUnitReports([]);
       return;
     }
 
+    const externalUnits = selectedFgasCustomer.units.filter(
+      (unit) => unit.unitType === "External"
+    );
+
     const savedReport = savedFgasReports[selectedFgasCustomer.name];
 
     if (savedReport) {
+      const mergedUnitReports = externalUnits.map((unit) => {
+        const matchedSavedUnit =
+          savedReport.unitReports.find(
+            (savedUnit) =>
+              (savedUnit.serial && unit.serial && savedUnit.serial === unit.serial) ||
+              (
+                savedUnit.model === unit.model &&
+                savedUnit.location === unit.location &&
+                savedUnit.manufacturer === unit.manufacturer
+              )
+          ) || null;
+
+        return {
+          id: matchedSavedUnit?.id || createId(),
+          manufacturer: unit.manufacturer,
+          model: unit.model,
+          serial: unit.serial,
+          location: unit.location,
+          refrigerantType: unit.refrigerantType,
+          refrigerantCharge: unit.refrigerantCharge,
+          co2Equivalent: unit.co2Equivalent,
+          leakCheckCompleted: matchedSavedUnit?.leakCheckCompleted || "Yes",
+          leakDetected: matchedSavedUnit?.leakDetected || "No",
+          refrigerantAdded: matchedSavedUnit?.refrigerantAdded || "",
+          refrigerantRecovered: matchedSavedUnit?.refrigerantRecovered || "",
+          actionsTaken: matchedSavedUnit?.actionsTaken || "",
+          notes: matchedSavedUnit?.notes || "",
+        };
+      });
+
       setFgasReportDate(
         savedReport.reportDate || new Date().toISOString().slice(0, 10)
       );
@@ -463,13 +497,9 @@ export default function Home() {
       setFgasVisitNotes(savedReport.visitNotes || "");
       setFgasLeakCheckResult(savedReport.leakCheckResult || "No leaks found");
       setFgasWorkCarriedOut(savedReport.workCarriedOut || "");
-      setFgasUnitReports(savedReport.unitReports || []);
+      setFgasUnitReports(mergedUnitReports);
       return;
     }
-
-    const externalUnits = selectedFgasCustomer.units.filter(
-      (unit) => unit.unitType === "External"
-    );
 
     setFgasReportDate(new Date().toISOString().slice(0, 10));
     setFgasEngineerName("");
