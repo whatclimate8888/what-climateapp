@@ -357,22 +357,40 @@ export default function InvoicePreviewPage() {
             <div style={tableHeaderRow}>
               <div>Description</div>
               <div style={{ textAlign: "right" }}>Amount</div>
-            </div>
-
-            <div style={tableRow}>
-              <div>Materials</div>
-              <div style={{ textAlign: "right" }}>
-                {formatMoney(totals.materialsValue)}
-              </div>
-            </div>
-
-            <div style={tableRow}>
-              <div>Labour</div>
-              <div style={{ textAlign: "right" }}>
-                {formatMoney(totals.labourValue)}
-              </div>
-            </div>
+                    <div style={{ marginTop: 24 }}>
+          <div style={boxHeader}>
+            {invoice.applyCis ? "Cost Breakdown" : "Amount"}
           </div>
+
+          {invoice.applyCis ? (
+            <div style={tableWrap}>
+              <div style={tableHeaderRow}>
+                <div>Description</div>
+                <div style={{ textAlign: "right" }}>Amount</div>
+              </div>
+
+              <div style={tableRow}>
+                <div>Materials</div>
+                <div style={{ textAlign: "right" }}>
+                  {formatMoney(totals.materialsValue)}
+                </div>
+              </div>
+
+              <div style={tableRow}>
+                <div>Labour</div>
+                <div style={{ textAlign: "right" }}>
+                  {formatMoney(totals.labourValue)}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={descBox}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <strong>Total Before VAT</strong>
+                <strong>{formatMoney(totals.subtotal)}</strong>
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={responsiveTotalsWrap}>
