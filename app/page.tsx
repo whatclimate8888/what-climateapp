@@ -243,6 +243,7 @@ const [quoteCustomerAddress, setQuoteCustomerAddress] = useState("");
 const [quoteSiteName, setQuoteSiteName] = useState("");
 const [quoteSiteAddress, setQuoteSiteAddress] = useState("");
 const [quoteDescription, setQuoteDescription] = useState("");
+const [quoteNote, setQuoteNote] = useState("Please note:");
 const [quoteAmount, setQuoteAmount] = useState("");
 const [quoteVatRate, setQuoteVatRate] = useState<0 | 20>(20);
   const [quoteStatus, setQuoteStatus] = useState<Quote["status"]>("Draft");
