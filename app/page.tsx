@@ -306,6 +306,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
+    const jobsSectionRef = useRef<HTMLElement | null>(null);
   const customersSectionRef = useRef<HTMLElement | null>(null);
   const quotesSectionRef = useRef<HTMLElement | null>(null);
   const invoicesSectionRef = useRef<HTMLElement | null>(null);
@@ -1395,7 +1396,6 @@ export default function Home() {
       )
     );
   };
-
   const deleteInvoice = (id: string) => {
     setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
     if (editingInvoiceId === id) {
@@ -1404,7 +1404,51 @@ export default function Home() {
     setPendingDeleteInvoiceId(null);
   };
 
+  const goToSection = (
+    section: "jobs" | "customers" | "quotes" | "invoices" | "fgas"
+  ) => {
+    setActiveSection(section);
+
+    requestAnimationFrame(() => {
+      if (section === "jobs") {
+        jobsSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+
+      if (section === "customers") {
+        customersSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+
+      if (section === "quotes") {
+        quotesSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+
+      if (section === "invoices") {
+        invoicesSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+
+      if (section === "fgas") {
+        fgasSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    });
+  };
+
   const responsivePage: CSSProperties = {
+  
     ...page,
     padding: isMobile ? 12 : 20,
   };
@@ -1619,31 +1663,31 @@ export default function Home() {
         </div>
 
         <div style={responsiveGrid}>
-          <section style={responsiveCard}>
+                    <section style={responsiveCard}>
             <h2 style={heading}>Quick Actions</h2>
             <div style={stackedButtonRow}>
-              <button style={fullWidthBtn} onClick={() => setActiveSection("jobs")}>
+              <button style={fullWidthBtn} onClick={() => goToSection("jobs")}>
                 Add Job
               </button>
               <button
                 style={fullWidthBtn}
-                onClick={() => setActiveSection("customers")}
+                onClick={() => goToSection("customers")}
               >
                 Customer Database
               </button>
               <button
                 style={fullWidthBtn}
-                onClick={() => setActiveSection("quotes")}
+                onClick={() => goToSection("quotes")}
               >
                 Add Quote
               </button>
               <button
                 style={fullWidthBtn}
-                onClick={() => setActiveSection("invoices")}
+                onClick={() => goToSection("invoices")}
               >
                 Invoices
               </button>
-              <button style={fullWidthBtn} onClick={() => setActiveSection("fgas")}>
+              <button style={fullWidthBtn} onClick={() => goToSection("fgas")}>
                 F-Gas Reports
               </button>
             </div>
@@ -1717,7 +1761,8 @@ export default function Home() {
             </div>
           </section>
 
-          <section
+                    <section
+            ref={jobsSectionRef}
             style={{
               ...responsiveCard,
               border:
