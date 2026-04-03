@@ -850,10 +850,19 @@ export default function Home() {
                       <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
                       <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
                       <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
+                      ${
+                        unit.unitType === "External"
+                          ? `
+                      <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
+                      <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
+                      <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
+                      `
+                          : ""
+                      }
                       <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
                       <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
                       <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
-                      <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
+                      <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>     
                   `
                   )
                   .join("")
@@ -2480,15 +2489,22 @@ export default function Home() {
                         {fgasUnitReports.map((unit, index) => (
                           <div key={unit.id} style={reportUnitCard}>
                             <div style={unitTitle}>System {index + 1}</div>
-                                                        <div><strong>Location:</strong> {unit.location || "Not set"}</div>
+                                                           <div><strong>Location:</strong> {unit.location || "Not set"}</div>
                             <div><strong>Type:</strong> {unit.unitType || "Not set"}</div>
                             <div><strong>Manufacturer:</strong> {unit.manufacturer || "Not set"}</div>
                             <div><strong>Model:</strong> {unit.model || "Not set"}</div>
                             <div><strong>Serial:</strong> {unit.serial || "Not set"}</div>
+                            {unit.unitType === "External" ? (
+                              <>
+                                <div><strong>Refrigerant Type:</strong> {unit.refrigerantType || "Not set"}</div>
+                                <div><strong>Refrigerant Charge:</strong> {unit.refrigerantCharge || "Not set"} kg</div>
+                                <div><strong>CO2 Equivalent:</strong> {unit.co2Equivalent || "Not set"} tCO2e</div>
+                              </>
+                            ) : null}
                             <div><strong>Leak Check Completed:</strong> {unit.leakCheckCompleted || "Not set"}</div>
                             <div><strong>Leak Detected:</strong> {unit.leakDetected || "Not set"}</div>
                             <div><strong>Actions Taken:</strong> {unit.actionsTaken || "None"}</div>
-                            <div><strong>System Notes:</strong> {unit.notes || "None"}</div>
+                            <div><strong>System Notes:</strong> {unit.notes || "None"}</div>                         
                           </div>
                         ))}
                       </div>
