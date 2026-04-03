@@ -104,6 +104,7 @@ type FGasUnitReport = {
   model: string;
   serial: string;
   location: string;
+  unitType: "Internal" | "External" | "";
   refrigerantType: string;
   refrigerantCharge: string;
   co2Equivalent: string;
@@ -173,6 +174,7 @@ const createFgasUnitReport = (unit: Unit): FGasUnitReport => ({
   model: unit.model,
   serial: unit.serial,
   location: unit.location,
+  unitType: unit.unitType,
   refrigerantType: unit.refrigerantType,
   refrigerantCharge: unit.refrigerantCharge,
   co2Equivalent: unit.co2Equivalent,
@@ -2309,30 +2311,52 @@ export default function Home() {
                         }
                         style={responsiveInput}
                       />
-                      <input
-                        placeholder="Refrigerant Type"
-                        value={unit.refrigerantType}
-                        onChange={(e) =>
-                          updateFgasUnitReport(index, "refrigerantType", e.target.value)
-                        }
-                        style={responsiveInput}
-                      />
-                      <input
-                        placeholder="Refrigerant Charge (kg)"
-                        value={unit.refrigerantCharge}
-                        onChange={(e) =>
-                          updateFgasUnitReport(index, "refrigerantCharge", e.target.value)
-                        }
-                        style={responsiveInput}
-                      />
-                      <input
-                        placeholder="CO2 Equivalent (tCO2e)"
-                        value={unit.co2Equivalent}
-                        onChange={(e) =>
-                          updateFgasUnitReport(index, "co2Equivalent", e.target.value)
-                        }
-                        style={responsiveInput}
-                      />
+                     
+                      {unit.unitType === "External" ? (
+  <>
+    <input
+      placeholder="Refrigerant Type"
+      value={unit.refrigerantType}
+      onChange={(e) =>
+        updateFgasUnitReport(index, "refrigerantType", e.target.value)
+      }
+      style={responsiveInput}
+    />
+    <input
+      placeholder="Refrigerant Charge (kg)"
+      value={unit.refrigerantCharge}
+      onChange={(e) =>
+        updateFgasUnitReport(index, "refrigerantCharge", e.target.value)
+      }
+      style={responsiveInput}
+    />
+    <input
+      placeholder="CO2 Equivalent (tCO2e)"
+      value={unit.co2Equivalent}
+      onChange={(e) =>
+        updateFgasUnitReport(index, "co2Equivalent", e.target.value)
+      }
+      style={responsiveInput}
+    />
+    <input
+      placeholder="Refrigerant Added (kg)"
+      value={unit.refrigerantAdded}
+      onChange={(e) =>
+        updateFgasUnitReport(index, "refrigerantAdded", e.target.value)
+      }
+      style={responsiveInput}
+    />
+    <input
+      placeholder="Refrigerant Recovered (kg)"
+      value={unit.refrigerantRecovered}
+      onChange={(e) =>
+        updateFgasUnitReport(index, "refrigerantRecovered", e.target.value)
+      }
+      style={responsiveInput}
+    />
+  </>
+) : null}
+                     
 
                       <select
                         value={unit.leakCheckCompleted}
@@ -2356,24 +2380,9 @@ export default function Home() {
                         <option value="Yes">Leak Detected: Yes</option>
                       </select>
 
-                      <input
-                        placeholder="Refrigerant Added (kg)"
-                        value={unit.refrigerantAdded}
-                        onChange={(e) =>
-                          updateFgasUnitReport(index, "refrigerantAdded", e.target.value)
-                        }
-                        style={responsiveInput}
-                      />
+                     
 
-                      <input
-                        placeholder="Refrigerant Recovered (kg)"
-                        value={unit.refrigerantRecovered}
-                        onChange={(e) =>
-                          updateFgasUnitReport(index, "refrigerantRecovered", e.target.value)
-                        }
-                        style={responsiveInput}
-                      />
-
+                      
                       <textarea
                         placeholder="Actions Taken"
                         value={unit.actionsTaken}
