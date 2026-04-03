@@ -845,20 +845,15 @@ export default function Home() {
                     (unit, index) => `
                     <div class="box">
                       <div><strong>System ${index + 1}</strong></div>
-                      <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
+                                            <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
+                      <div><strong>Type:</strong> ${escapeHtml(unit.unitType || "Not set")}</div>
                       <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
                       <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
                       <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
-                      <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
-                      <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
-                      <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
                       <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
                       <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
-                      <div><strong>Refrigerant Added:</strong> ${escapeHtml(unit.refrigerantAdded || "0")} kg</div>
-                      <div><strong>Refrigerant Recovered:</strong> ${escapeHtml(unit.refrigerantRecovered || "0")} kg</div>
                       <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
                       <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
-                    </div>
                   `
                   )
                   .join("")
@@ -2485,17 +2480,13 @@ export default function Home() {
                         {fgasUnitReports.map((unit, index) => (
                           <div key={unit.id} style={reportUnitCard}>
                             <div style={unitTitle}>System {index + 1}</div>
-                            <div><strong>Location:</strong> {unit.location || "Not set"}</div>
+                                                        <div><strong>Location:</strong> {unit.location || "Not set"}</div>
+                            <div><strong>Type:</strong> {unit.unitType || "Not set"}</div>
                             <div><strong>Manufacturer:</strong> {unit.manufacturer || "Not set"}</div>
                             <div><strong>Model:</strong> {unit.model || "Not set"}</div>
                             <div><strong>Serial:</strong> {unit.serial || "Not set"}</div>
-                            <div><strong>Refrigerant Type:</strong> {unit.refrigerantType || "Not set"}</div>
-                            <div><strong>Refrigerant Charge:</strong> {unit.refrigerantCharge || "Not set"} kg</div>
-                            <div><strong>CO2 Equivalent:</strong> {unit.co2Equivalent || "Not set"} tCO2e</div>
                             <div><strong>Leak Check Completed:</strong> {unit.leakCheckCompleted || "Not set"}</div>
                             <div><strong>Leak Detected:</strong> {unit.leakDetected || "Not set"}</div>
-                            <div><strong>Refrigerant Added:</strong> {unit.refrigerantAdded || "0"} kg</div>
-                            <div><strong>Refrigerant Recovered:</strong> {unit.refrigerantRecovered || "0"} kg</div>
                             <div><strong>Actions Taken:</strong> {unit.actionsTaken || "None"}</div>
                             <div><strong>System Notes:</strong> {unit.notes || "None"}</div>
                           </div>
