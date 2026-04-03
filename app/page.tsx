@@ -448,14 +448,13 @@ export default function Home() {
     setInvoiceCustomerEmail(matchedCustomer.email || "");
   }, [invoiceCustomer, customers, editingInvoiceId]);
 
-       useEffect(() => {
+         useEffect(() => {
     if (!selectedFgasCustomer) {
       setFgasUnitReports([]);
       return;
     }
 
     const allUnits = selectedFgasCustomer.units;
-
     const savedReport = savedFgasReports[selectedFgasCustomer.name];
 
     if (savedReport) {
@@ -463,27 +462,37 @@ export default function Home() {
         const matchedSavedUnit =
           savedReport.unitReports.find(
             (savedUnit) =>
-              (savedUnit.serial && unit.serial && savedUnit.serial === unit.serial) ||
-              (
-                savedUnit.model === unit.model &&
+              (savedUnit.serial &&
+                unit.serial &&
+                savedUnit.serial === unit.serial) ||
+              (savedUnit.model === unit.model &&
                 savedUnit.location === unit.location &&
-                savedUnit.manufacturer === unit.manufacturer
-              )
+                savedUnit.manufacturer === unit.manufacturer)
           ) || null;
 
         return {
           id: matchedSavedUnit?.id || createId(),
-          manufacturer: unit.manufacturer,
-          model: unit.model,
-          serial: unit.serial,
-          location: unit.location,
-          refrigerantType: unit.refrigerantType || "",
-          refrigerantCharge: unit.refrigerantCharge || "",
-          co2Equivalent: unit.co2Equivalent || "",
+          manufacturer: unit.manufacturer || "",
+          model: unit.model || "",
+          serial: unit.serial || "",
+          location: unit.location || "",
+          unitType: unit.unitType || "",
+          refrigerantType:
+            unit.unitType === "External" ? unit.refrigerantType || "" : "",
+          refrigerantCharge:
+            unit.unitType === "External" ? unit.refrigerantCharge || "" : "",
+          co2Equivalent:
+            unit.unitType === "External" ? unit.co2Equivalent || "" : "",
           leakCheckCompleted: matchedSavedUnit?.leakCheckCompleted || "Yes",
           leakDetected: matchedSavedUnit?.leakDetected || "No",
-          refrigerantAdded: matchedSavedUnit?.refrigerantAdded || "",
-          refrigerantRecovered: matchedSavedUnit?.refrigerantRecovered || "",
+          refrigerantAdded:
+            unit.unitType === "External"
+              ? matchedSavedUnit?.refrigerantAdded || ""
+              : "",
+          refrigerantRecovered:
+            unit.unitType === "External"
+              ? matchedSavedUnit?.refrigerantRecovered || ""
+              : "",
           actionsTaken: matchedSavedUnit?.actionsTaken || "",
           notes: matchedSavedUnit?.notes || "",
         };
@@ -504,13 +513,17 @@ export default function Home() {
 
     const allUnitReports = allUnits.map((unit) => ({
       id: createId(),
-      manufacturer: unit.manufacturer,
-      model: unit.model,
-      serial: unit.serial,
-      location: unit.location,
-      refrigerantType: unit.refrigerantType || "",
-      refrigerantCharge: unit.refrigerantCharge || "",
-      co2Equivalent: unit.co2Equivalent || "",
+      manufacturer: unit.manufacturer || "",
+      model: unit.model || "",
+      serial: unit.serial || "",
+      location: unit.location || "",
+      unitType: unit.unitType || "",
+      refrigerantType:
+        unit.unitType === "External" ? unit.refrigerantType || "" : "",
+      refrigerantCharge:
+        unit.unitType === "External" ? unit.refrigerantCharge || "" : "",
+      co2Equivalent:
+        unit.unitType === "External" ? unit.co2Equivalent || "" : "",
       leakCheckCompleted: "Yes",
       leakDetected: "No",
       refrigerantAdded: "",
@@ -527,7 +540,7 @@ export default function Home() {
     setFgasLeakCheckResult("No leaks found");
     setFgasWorkCarriedOut("");
     setFgasUnitReports(allUnitReports);
-  }, [selectedFgasCustomer]); 
+  }, [selectedFgasCustomer, savedFgasReports]);
     
 
   useEffect(() => {
@@ -765,7 +778,7 @@ export default function Home() {
     });
   };
 
-  const saveFgasPdf = () => {
+    const saveFgasPdf = () => {
     if (!selectedFgasCustomer) return;
 
     const html = `
@@ -800,6 +813,19 @@ export default function Home() {
               padding: 12px;
               margin-bottom: 12px;
               page-break-inside: avoid;
+              break-inside: avoid;
+              font-size: 13px;
+              line-height: 1.45;
+            }
+            .system-title {
+              font-weight: 700;
+              font-size: 15px;
+              margin-bottom: 8px;
+            }
+            .unit-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 6px 16px;
             }
             .text-box {
               border: 1px solid #ddd;
@@ -839,30 +865,35 @@ export default function Home() {
           <h2>System Register</h2>
           ${
             fgasUnitReports.length === 0
-              ? `<div class="text-box">No external units found for this customer.</div>`
+              ? `<div class="text-box">No units found for this customer.</div>`
               : fgasUnitReports
                   .map(
                     (unit, index) => `
                     <div class="box">
-                      <div><strong>System ${index + 1}</strong></div>
-                                            <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
-                      <div><strong>Type:</strong> ${escapeHtml(unit.unitType || "Not set")}</div>
-                      <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
-                      <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
-                      <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
-                      ${
-                        unit.unitType === "External"
-                          ? `
-                      <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
-                      <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
-                      <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
-                      `
-                          : ""
-                      }
-                      <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
-                      <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
-                      <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
-                      <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>     
+                      <div class="system-title">System ${index + 1} - ${escapeHtml(
+                        unit.unitType || "Not set"
+                      )}</div>
+
+                      <div class="unit-grid">
+                        <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
+                        <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
+                        <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
+                        <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
+                        ${
+                          unit.unitType === "External"
+                            ? `
+                        <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
+                        <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
+                        <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
+                        `
+                            : ""
+                        }
+                        <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
+                        <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
+                        <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
+                        <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
+                      </div>
+                    </div>
                   `
                   )
                   .join("")
@@ -2487,13 +2518,15 @@ export default function Home() {
                     ) : (
                       <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
                         {fgasUnitReports.map((unit, index) => (
-                          <div key={unit.id} style={reportUnitCard}>
-                            <div style={unitTitle}>System {index + 1}</div>
-                                                           <div><strong>Location:</strong> {unit.location || "Not set"}</div>
-                            <div><strong>Type:</strong> {unit.unitType || "Not set"}</div>
+                                                    <div key={unit.id} style={reportUnitCard}>
+                            <div style={unitTitle}>
+                              System {index + 1} - {unit.unitType || "Not set"}
+                            </div>
+                            <div><strong>Location:</strong> {unit.location || "Not set"}</div>
                             <div><strong>Manufacturer:</strong> {unit.manufacturer || "Not set"}</div>
                             <div><strong>Model:</strong> {unit.model || "Not set"}</div>
                             <div><strong>Serial:</strong> {unit.serial || "Not set"}</div>
+
                             {unit.unitType === "External" ? (
                               <>
                                 <div><strong>Refrigerant Type:</strong> {unit.refrigerantType || "Not set"}</div>
@@ -2501,10 +2534,11 @@ export default function Home() {
                                 <div><strong>CO2 Equivalent:</strong> {unit.co2Equivalent || "Not set"} tCO2e</div>
                               </>
                             ) : null}
+
                             <div><strong>Leak Check Completed:</strong> {unit.leakCheckCompleted || "Not set"}</div>
                             <div><strong>Leak Detected:</strong> {unit.leakDetected || "Not set"}</div>
                             <div><strong>Actions Taken:</strong> {unit.actionsTaken || "None"}</div>
-                            <div><strong>System Notes:</strong> {unit.notes || "None"}</div>                         
+                            <div><strong>System Notes:</strong> {unit.notes || "None"}</div>
                           </div>
                         ))}
                       </div>
