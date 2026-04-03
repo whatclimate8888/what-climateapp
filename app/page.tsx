@@ -446,20 +446,18 @@ export default function Home() {
     setInvoiceCustomerEmail(matchedCustomer.email || "");
   }, [invoiceCustomer, customers, editingInvoiceId]);
 
-      useEffect(() => {
+       useEffect(() => {
     if (!selectedFgasCustomer) {
       setFgasUnitReports([]);
       return;
     }
 
-    const externalUnits = selectedFgasCustomer.units.filter(
-      (unit) => unit.unitType === "External"
-    );
+    const allUnits = selectedFgasCustomer.units;
 
     const savedReport = savedFgasReports[selectedFgasCustomer.name];
 
     if (savedReport) {
-      const mergedUnitReports = externalUnits.map((unit) => {
+      const mergedUnitReports = allUnits.map((unit) => {
         const matchedSavedUnit =
           savedReport.unitReports.find(
             (savedUnit) =>
@@ -477,9 +475,9 @@ export default function Home() {
           model: unit.model,
           serial: unit.serial,
           location: unit.location,
-          refrigerantType: unit.refrigerantType,
-          refrigerantCharge: unit.refrigerantCharge,
-          co2Equivalent: unit.co2Equivalent,
+          refrigerantType: unit.refrigerantType || "",
+          refrigerantCharge: unit.refrigerantCharge || "",
+          co2Equivalent: unit.co2Equivalent || "",
           leakCheckCompleted: matchedSavedUnit?.leakCheckCompleted || "Yes",
           leakDetected: matchedSavedUnit?.leakDetected || "No",
           refrigerantAdded: matchedSavedUnit?.refrigerantAdded || "",
@@ -502,6 +500,23 @@ export default function Home() {
       return;
     }
 
+    const allUnitReports = allUnits.map((unit) => ({
+      id: createId(),
+      manufacturer: unit.manufacturer,
+      model: unit.model,
+      serial: unit.serial,
+      location: unit.location,
+      refrigerantType: unit.refrigerantType || "",
+      refrigerantCharge: unit.refrigerantCharge || "",
+      co2Equivalent: unit.co2Equivalent || "",
+      leakCheckCompleted: "Yes",
+      leakDetected: "No",
+      refrigerantAdded: "",
+      refrigerantRecovered: "",
+      actionsTaken: "",
+      notes: "",
+    }));
+
     setFgasReportDate(new Date().toISOString().slice(0, 10));
     setFgasEngineerName("");
     setFgasEngineerCertificate("");
@@ -509,8 +524,9 @@ export default function Home() {
     setFgasVisitNotes("");
     setFgasLeakCheckResult("No leaks found");
     setFgasWorkCarriedOut("");
-    setFgasUnitReports(externalUnits.map(createFgasUnitReport));
-  }, [selectedFgasCustomer]);
+    setFgasUnitReports(allUnitReports);
+  }, [selectedFgasCustomer]); 
+    
 
   useEffect(() => {
     if (!loaded || !fgasCustomer) return;
@@ -2252,10 +2268,10 @@ export default function Home() {
                 <h3 style={subheading}>Editable System Details</h3>
 
                 {fgasUnitReports.length === 0 ? (
-                  <p style={muted}>
-                    No external units found for this customer. Add external unit
-                    details in the customer database first.
-                  </p>
+                                   <p style={muted}>
+                    No units found for this customer. Add unit details in the
+                    customer database first.
+                  </p> 
                 ) : (
                   fgasUnitReports.map((unit, index) => (
                     <div key={unit.id} style={responsiveUnitBox}>
@@ -2452,7 +2468,7 @@ export default function Home() {
 
                     {fgasUnitReports.length === 0 ? (
                       <div style={{ ...reportTextBox, marginTop: 10 }}>
-                        No external units found for this customer. Add external unit
+                        No units found for this customer. Add unit
                         details in the customer database to generate the F-Gas sheet.
                       </div>
                     ) : (
