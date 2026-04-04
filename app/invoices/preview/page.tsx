@@ -112,7 +112,7 @@ export default function InvoicePreviewPage() {
     setIsDownloading(true);
 
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3,
       backgroundColor: "#ffffff",
       useCORS: true,
     });
@@ -122,16 +122,16 @@ export default function InvoicePreviewPage() {
 
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 10;
+    const margin = 6;
 
     const usableWidth = pageWidth - margin * 2;
     const usableHeight = pageHeight - margin * 2;
 
     // 🔥 KEY PART: scale to ALWAYS fit ONE page
     const ratio = Math.min(
-      usableWidth / canvas.width,
-      usableHeight / canvas.height
-    );
+  usableWidth / canvas.width,
+  usableHeight / canvas.height
+) * 1.03;
 
     const finalWidth = canvas.width * ratio;
     const finalHeight = canvas.height * ratio;
@@ -436,7 +436,7 @@ export default function InvoicePreviewPage() {
   );
 }
 const page: CSSProperties = {
-  background: "#f3f4f6",
+  background: "#ffffff",
   minHeight: "100vh",
   padding: 16,
   fontFamily: "Arial, sans-serif",
@@ -536,7 +536,7 @@ const infoBox: CSSProperties = {
 };
 
 const boxHeader: CSSProperties = {
-  background: "#d1d5db",
+  background: "#e5e7eb",
   padding: "8px 10px",
   fontWeight: 700,
   fontSize: 13,
@@ -616,7 +616,7 @@ const summaryTable: CSSProperties = {
   border: "1px solid #d1d5db",
   borderRadius: 8,
   padding: 12,
-  background: "#fafafa",
+  background: "#ffffff",
   boxSizing: "border-box",
 };
 
