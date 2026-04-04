@@ -1455,12 +1455,32 @@ export default function Home() {
       )
     );
   };
-  const deleteInvoice = (id: string) => {
+    const deleteInvoice = (id: string) => {
     setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
     if (editingInvoiceId === id) {
       resetInvoiceForm();
     }
     setPendingDeleteInvoiceId(null);
+  };
+
+  const markServiceComplete = (customerName: string) => {
+    setCustomers((prev) =>
+      prev.map((customer) => {
+        if (customer.name !== customerName) return customer;
+
+        const baseDate = customer.annualServiceDueDate
+          ? new Date(customer.annualServiceDueDate)
+          : new Date();
+
+        const nextDueDate = new Date(baseDate);
+        nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+
+        return {
+          ...customer,
+          annualServiceDueDate: nextDueDate.toISOString().slice(0, 10),
+        };
+      })
+    );
   };
 
   const goToSection = (
@@ -1783,7 +1803,7 @@ export default function Home() {
           <section style={responsiveCard}>
             <h2 style={heading}>Annual Services Due</h2>
 
-            {serviceDueCustomers.length === 0 ? (
+                        {serviceDueCustomers.length === 0 ? (
               <p style={muted}>No services due in the next 30 days.</p>
             ) : (
               serviceDueCustomers.map((customer) => (
@@ -1792,6 +1812,15 @@ export default function Home() {
                   <div>{customer.address}</div>
                   <div>Due: {customer.annualServiceDueDate}</div>
                   <div>{customer.phone}</div>
+
+                  <div style={{ ...stackedButtonRow, marginTop: 12 }}>
+                    <button
+                      onClick={() => markServiceComplete(customer.name)}
+                      style={fullWidthBtnSecondary}
+                    >
+                      Mark Service Complete
+                    </button>
+                  </div>
                 </div>
               ))
             )}
