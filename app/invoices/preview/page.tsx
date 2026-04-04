@@ -167,12 +167,12 @@ export default function InvoicePreviewPage() {
   };
 
   const responsivePdf: CSSProperties = {
-    ...pdf,
-    padding: isMobile ? 18 : 40,
-    margin: isMobile ? "0 auto 20px" : "20px auto",
-    minHeight: "auto",
-    borderRadius: isMobile ? 12 : 0,
-  };
+  ...pdf,
+  padding: isMobile ? 18 : 24,
+  margin: isMobile ? "0 auto 20px" : "20px auto",
+  minHeight: "auto",
+  borderRadius: isMobile ? 12 : 0,
+};
 
   const responsiveHeader: CSSProperties = {
     ...header,
@@ -437,12 +437,14 @@ export default function InvoicePreviewPage() {
     </div>
   );
 }
-
 const page: CSSProperties = {
-  background: "#eeeeee",
+  background: "#f3f4f6",
   minHeight: "100vh",
-  padding: 24,
+  padding: 16,
+  fontFamily: "Arial, sans-serif",
+  color: "#111827",
 };
+
 
 const actionBar: CSSProperties = {
   display: "flex",
@@ -454,9 +456,9 @@ const actionBar: CSSProperties = {
 
 const pdf: CSSProperties = {
   background: "#ffffff",
-  padding: 40,
-  maxWidth: 900,
-  minHeight: 1123,
+  padding: 24,
+  maxWidth: 794,
+  minHeight: "auto",
   margin: "20px auto",
   boxShadow: "0 0 10px rgba(0,0,0,0.1)",
   boxSizing: "border-box",
@@ -488,30 +490,30 @@ const header: CSSProperties = {
 
 const company: CSSProperties = {
   textAlign: "right",
-  lineHeight: 1.6,
-  fontSize: 14,
+  lineHeight: 1.4,
+  fontSize: 13,
 };
 
 const companyName: CSSProperties = {
   fontWeight: 700,
-  fontSize: 16,
+  fontSize: 15,
 };
 
 const title: CSSProperties = {
   textAlign: "center",
   color: "#4bb5e8",
-  fontSize: 42,
+  fontSize: 34,
   fontWeight: 700,
-  marginTop: 28,
-  marginBottom: 10,
+  marginTop: 16,
+  marginBottom: 6,
 };
 
 const metaBox: CSSProperties = {
   textAlign: "center",
-  marginTop: 20,
-  marginBottom: 30,
-  lineHeight: 1.9,
-  fontSize: 14,
+  marginTop: 10,
+  marginBottom: 18,
+  lineHeight: 1.5,
+  fontSize: 13,
 };
 
 const invoiceInfoBar: CSSProperties = {
@@ -527,8 +529,8 @@ const invoiceInfoBar: CSSProperties = {
 const row: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: 24,
-  marginTop: 24,
+  gap: 16,
+  marginTop: 16,
 };
 
 const infoBox: CSSProperties = {
@@ -537,25 +539,28 @@ const infoBox: CSSProperties = {
 
 const boxHeader: CSSProperties = {
   background: "#d1d5db",
-  padding: "10px 12px",
+  padding: "8px 10px",
   fontWeight: 700,
+  fontSize: 13,
   marginBottom: 0,
 };
 
 const boxBody: CSSProperties = {
   border: "1px solid #d1d5db",
   borderTop: "none",
-  padding: 12,
-  minHeight: 90,
-  lineHeight: 1.7,
+  padding: 10,
+  minHeight: 70,
+  lineHeight: 1.5,
+  fontSize: 13,
 };
 
 const descBox: CSSProperties = {
   border: "1px solid #d1d5db",
   borderTop: "none",
-  padding: 16,
-  minHeight: 140,
-  lineHeight: 1.7,
+  padding: 12,
+  minHeight: 90,
+  lineHeight: 1.5,
+  fontSize: 13,
 };
 
 const descriptionText: CSSProperties = {
@@ -570,26 +575,28 @@ const tableWrap: CSSProperties = {
 
 const tableHeaderRow: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 140px",
-  gap: 12,
-  padding: "12px 16px",
+  gridTemplateColumns: "1fr 120px",
+  gap: 10,
+  padding: "10px 12px",
   background: "#f9fafb",
   fontWeight: 700,
+  fontSize: 13,
   borderBottom: "1px solid #e5e7eb",
 };
 
 const tableRow: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 140px",
-  gap: 12,
-  padding: "12px 16px",
+  gridTemplateColumns: "1fr 120px",
+  gap: 10,
+  padding: "10px 12px",
+  fontSize: 13,
   borderBottom: "1px solid #e5e7eb",
 };
 
 const amountOnlyBox: CSSProperties = {
   border: "1px solid #d1d5db",
   borderTop: "none",
-  padding: 16,
+  padding: 12,
   background: "#ffffff",
 };
 
@@ -598,20 +605,19 @@ const amountOnlyRow: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: 12,
-  fontSize: 18,
+  fontSize: 16,
 };
 
 const totalsWrap: CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
-  marginTop: 24,
+  marginTop: 16,
 };
-
 const summaryTable: CSSProperties = {
-  width: 360,
+  width: 320,
   border: "1px solid #d1d5db",
-  borderRadius: 10,
-  padding: 16,
+  borderRadius: 8,
+  padding: 12,
   background: "#fafafa",
   boxSizing: "border-box",
 };
@@ -620,44 +626,47 @@ const summaryRow: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "8px 0",
+  padding: "6px 0",
   gap: 12,
-  fontSize: 16,
+  fontSize: 14,
 };
 
 const summaryGrandTotal: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginTop: 14,
-  paddingTop: 14,
+  marginTop: 10,
+  paddingTop: 10,
   borderTop: "2px solid #bbb",
   gap: 12,
-  fontSize: 24,
+  fontSize: 20,
   fontWeight: 700,
 };
 
 const noteBox: CSSProperties = {
-  marginTop: 24,
-  padding: 12,
+  marginTop: 16,
+  padding: 10,
   background: "#f7f7f7",
   borderLeft: "4px solid #f97316",
-  lineHeight: 1.6,
+  lineHeight: 1.5,
+  fontSize: 12,
 };
 
 const paymentBox: CSSProperties = {
-  marginTop: 30,
-  padding: 16,
+  marginTop: 18,
+  padding: 12,
   background: "#f7f7f7",
   borderRadius: 8,
-  lineHeight: 1.8,
+  lineHeight: 1.5,
+  fontSize: 13,
 };
 
 const paymentTitle: CSSProperties = {
   fontWeight: 700,
-  marginBottom: 8,
-  fontSize: 16,
+  marginBottom: 6,
+  fontSize: 14,
 };
+
 
 const statusText: CSSProperties = {
   marginTop: 40,
@@ -666,16 +675,16 @@ const statusText: CSSProperties = {
 };
 
 const logoWrap: CSSProperties = {
-  width: 220,
+  width: 180,
   maxWidth: "100%",
-  minHeight: 60,
+  minHeight: 50,
   display: "flex",
   alignItems: "center",
 };
 
 const logoImg: CSSProperties = {
   width: "100%",
-  maxWidth: 220,
+  maxWidth: 180,
   height: "auto",
   display: "block",
 };
