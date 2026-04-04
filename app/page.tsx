@@ -52,6 +52,7 @@ type Quote = {
   vatRate: 0 | 20;
   status: "Draft" | "Sent" | "Approved" | "Invoiced";
   createdAt: string;
+  archived: boolean;
 };
 
 type Invoice = {
@@ -73,6 +74,7 @@ type Invoice = {
   paymentTerms: string;
   poNumber: string;
   status: "Unpaid" | "Paid";
+  archived: boolean;
 };
 
 type QuotePreviewData = {
@@ -335,10 +337,30 @@ export default function Home() {
       const savedQuoteDraft = localStorage.getItem("what-climate-quote-draft");
       const savedFgasReportsData = localStorage.getItem("what-climate-fgas-reports");
 
-      if (savedJobs) setJobs(JSON.parse(savedJobs));
+            if (savedJobs) setJobs(JSON.parse(savedJobs));
       if (savedCustomers) setCustomers(JSON.parse(savedCustomers));
-      if (savedQuotes) setQuotes(JSON.parse(savedQuotes));
-      if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+      if (savedQuotes) {
+        const parsedQuotes = JSON.parse(savedQuotes);
+        setQuotes(
+          Array.isArray(parsedQuotes)
+            ? parsedQuotes.map((quote) => ({
+                ...quote,
+                archived: quote.archived ?? false,
+              }))
+            : []
+        );
+      }
+      if (savedInvoices) {
+        const parsedInvoices = JSON.parse(savedInvoices);
+        setInvoices(
+          Array.isArray(parsedInvoices)
+            ? parsedInvoices.map((invoice) => ({
+                ...invoice,
+                archived: invoice.archived ?? false,
+              }))
+            : []
+        );
+      }
       if (savedFgasReportsData) setSavedFgasReports(JSON.parse(savedFgasReportsData));
 
       if (savedQuoteDraft) {
@@ -699,12 +721,32 @@ export default function Home() {
 
   const todaysTotal = filteredJobs.length;
 
-  const invoiceValue = useMemo(() => {
+    const invoiceValue = useMemo(() => {
     return invoices.reduce(
       (sum, invoice) => sum + getInvoiceValues(invoice).total,
       0
     );
   }, [invoices]);
+
+  const activeQuotes = useMemo(
+    () => quotes.filter((quote) => !quote.archived),
+    [quotes]
+  );
+
+  const archivedQuotes = useMemo(
+    () => quotes.filter((quote) => quote.archived),
+    [quotes]
+  );
+
+  const activeInvoices = useMemo(
+    () => invoices.filter((invoice) => !invoice.archived),
+    [invoices]
+  );
+
+  const archivedInvoices = useMemo(
+    () => invoices.filter((invoice) => invoice.archived),
+    [invoices]
+  );
 
   const previewQuote = () => {
     if (!quoteCustomer.trim() || !quoteDescription.trim() || !quoteAmount.trim()) {
@@ -1239,7 +1281,7 @@ export default function Home() {
       (customer) => customer.name === quoteSiteCustomer
     );
 
-    if (editingQuoteId) {
+        if (editingQuoteId) {
       setQuotes((prev) =>
         prev.map((quote) =>
           quote.id === editingQuoteId
@@ -1275,6 +1317,7 @@ export default function Home() {
         vatRate: quoteVatRate,
         status: quoteStatus,
         createdAt: new Date().toLocaleDateString("en-GB"),
+        archived: false,
       };
 
       setQuotes((prev) => [newQuote, ...prev]);
@@ -1327,7 +1370,7 @@ export default function Home() {
       ? invoices.find((invoice) => invoice.id === editingInvoiceId)
       : null;
 
-    const invoiceToSave: Invoice = {
+        const invoiceToSave: Invoice = {
       id: editingInvoiceId || getNextInvoiceId(),
       quoteId: existingInvoice?.quoteId || "",
       customer: invoiceCustomer,
@@ -1336,7 +1379,8 @@ export default function Home() {
       siteName: invoiceSiteName,
       siteAddress: invoiceSiteAddress,
       description: invoiceDescription,
-      createdAt: existingInvoice?.createdAt || new Date().toLocaleDateString("en-GB"),
+      createdAt:
+        existingInvoice?.createdAt || new Date().toLocaleDateString("en-GB"),
       vatRate: reverseVat ? 0 : invoiceVatRate,
       reverseVat,
       applyCis,
@@ -1346,6 +1390,7 @@ export default function Home() {
       paymentTerms: invoicePaymentTerms,
       poNumber,
       status: existingInvoice?.status || "Unpaid",
+      archived: existingInvoice?.archived ?? false,
     };
 
     if (editingInvoiceId) {
@@ -1404,7 +1449,7 @@ export default function Home() {
       return;
     }
 
-    const newInvoice: Invoice = {
+        const newInvoice: Invoice = {
       id: getNextInvoiceId(),
       quoteId: quote.id,
       customer: quote.customer,
@@ -1423,6 +1468,7 @@ export default function Home() {
       paymentTerms: "30 Days",
       poNumber: "",
       status: "Unpaid",
+      archived: false,
     };
 
     setInvoices((prev) => [newInvoice, ...prev]);
@@ -1442,20 +1488,23 @@ export default function Home() {
       });
     });
   };
-
   const toggleInvoicePaid = (id: string) => {
     setInvoices((prev) =>
-      prev.map((invoice) =>
-        invoice.id === id
-          ? {
-              ...invoice,
-              status: invoice.status === "Paid" ? "Unpaid" : "Paid",
-            }
-          : invoice
-      )
+      prev.map((invoice) => {
+        if (invoice.id !== id) return invoice;
+
+        const isCurrentlyPaid = invoice.status === "Paid";
+
+        return {
+          ...invoice,
+          status: isCurrentlyPaid ? "Unpaid" : "Paid",
+          archived: isCurrentlyPaid ? false : true,
+        };
+      })
     );
   };
-    const deleteInvoice = (id: string) => {
+  
+     const deleteInvoice = (id: string) => {
     setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
     if (editingInvoiceId === id) {
       resetInvoiceForm();
@@ -1480,6 +1529,46 @@ export default function Home() {
           annualServiceDueDate: nextDueDate.toISOString().slice(0, 10),
         };
       })
+    );
+  };
+
+  const archiveQuote = (id: string) => {
+    setQuotes((prev) =>
+      prev.map((quote) =>
+        quote.id === id ? { ...quote, archived: true } : quote
+      )
+    );
+    if (editingQuoteId === id) {
+      resetQuoteForm();
+    }
+  };
+
+  const unarchiveQuote = (id: string) => {
+    setQuotes((prev) =>
+      prev.map((quote) =>
+        quote.id === id ? { ...quote, archived: false } : quote
+      )
+    );
+  };
+
+  const archiveInvoice = (id: string) => {
+    setInvoices((prev) =>
+      prev.map((invoice) =>
+        invoice.id === id ? { ...invoice, archived: true } : invoice
+      )
+    );
+    if (editingInvoiceId === id) {
+      resetInvoiceForm();
+    }
+  };
+
+  const unarchiveInvoice = (id: string) => {
+    setInvoices((prev) =>
+      prev.map((invoice) =>
+        invoice.id === id
+          ? { ...invoice, archived: false, status: "Unpaid" }
+          : invoice
+      )
     );
   };
 
@@ -1524,7 +1613,7 @@ export default function Home() {
         });
       }
     });
-  };
+  };  
 
   const responsivePage: CSSProperties = {
   
@@ -2695,12 +2784,13 @@ export default function Home() {
                 </button>
               ) : null}
             </div>
-
             <div style={{ marginTop: 16 }}>
-              {quotes.length === 0 ? (
-                <p style={muted}>No quotes added yet.</p>
+              <h3 style={subheading}>Active Quotes</h3>
+
+              {activeQuotes.length === 0 ? (
+                <p style={muted}>No active quotes.</p>
               ) : (
-                quotes.map((quote) => (
+                activeQuotes.map((quote) => (
                   <div key={quote.id} style={responsiveQuoteBox}>
                     <div style={responsiveCustomerHeader}>
                       <div>
@@ -2792,6 +2882,13 @@ export default function Home() {
                         Convert to Invoice
                       </button>
 
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => archiveQuote(quote.id)}
+                      >
+                        Archive
+                      </button>
+
                       <span
                         style={{
                           ...statusPill(quote.status),
@@ -2805,10 +2902,66 @@ export default function Home() {
                   </div>
                 ))
               )}
+
+              <h3 style={{ ...subheading, marginTop: 24 }}>Archived Quotes</h3>
+
+              {archivedQuotes.length === 0 ? (
+                <p style={muted}>No archived quotes.</p>
+              ) : (
+                archivedQuotes.map((quote) => (
+                  <div key={quote.id} style={responsiveQuoteBox}>
+                    <div style={responsiveCustomerHeader}>
+                      <div>
+                        <strong>{quote.id}</strong>
+                        <div style={{ color: "#555", marginTop: 4 }}>
+                          {quote.customer}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          ...statusPill("Archived"),
+                          justifyContent: "center",
+                          width: isMobile ? "100%" : "auto",
+                        }}
+                      >
+                        Archived
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: 8 }}>{quote.description}</div>
+                    <div style={{ marginTop: 8 }}>Amount: £{quote.amount}</div>
+                    <div style={{ marginTop: 8 }}>Created: {quote.createdAt}</div>
+
+                    <div style={{ ...stackedButtonRow, marginTop: 12 }}>
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => previewSavedQuote(quote)}
+                      >
+                        Preview
+                      </button>
+
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => unarchiveQuote(quote.id)}
+                      >
+                        Unarchive
+                      </button>
+
+                      <button
+                        style={fullWidthBtnSecondary}
+                        onClick={() => startEditQuote(quote)}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
+            
           </section>
 
-          <section
+               <section
             ref={invoicesSectionRef}
             style={{
               ...responsiveCard,
@@ -2960,10 +3113,12 @@ export default function Home() {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              {invoices.length === 0 ? (
-                <p style={muted}>No invoices created yet.</p>
+              <h3 style={subheading}>Active Invoices</h3>
+
+              {activeInvoices.length === 0 ? (
+                <p style={muted}>No active invoices.</p>
               ) : (
-                invoices.map((invoice) => {
+                activeInvoices.map((invoice) => {
                   const values = getInvoiceValues(invoice);
 
                   return (
@@ -3080,6 +3235,13 @@ export default function Home() {
                           Preview Invoice
                         </button>
 
+                        <button
+                          style={fullWidthBtnSecondary}
+                          onClick={() => archiveInvoice(invoice.id)}
+                        >
+                          Archive
+                        </button>
+
                         <span
                           style={{
                             ...statusPill(invoice.status),
@@ -3094,13 +3256,79 @@ export default function Home() {
                   );
                 })
               )}
+
+              <h3 style={{ ...subheading, marginTop: 24 }}>Archived Invoices</h3>
+
+              {archivedInvoices.length === 0 ? (
+                <p style={muted}>No archived invoices.</p>
+              ) : (
+                archivedInvoices.map((invoice) => {
+                  const values = getInvoiceValues(invoice);
+
+                  return (
+                    <div key={invoice.id} style={responsiveQuoteBox}>
+                      <div style={responsiveCustomerHeader}>
+                        <div>
+                          <strong>{invoice.id}</strong>
+                          <div style={{ color: "#555", marginTop: 4 }}>
+                            {invoice.customer}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            ...statusPill("Archived"),
+                            justifyContent: "center",
+                            width: isMobile ? "100%" : "auto",
+                          }}
+                        >
+                          Archived
+                        </span>
+                      </div>
+
+                      <div style={{ marginTop: 8 }}>
+                        Description: {invoice.description || "None"}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Total: {formatMoney(values.total)}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        Created: {invoice.createdAt}
+                      </div>
+
+                      <div style={{ ...stackedButtonRow, marginTop: 12 }}>
+                        <button
+                          style={fullWidthBtnSecondary}
+                          onClick={() => previewInvoice(invoice)}
+                        >
+                          Preview Invoice
+                        </button>
+
+                        <button
+                          style={fullWidthBtnSecondary}
+                          onClick={() => unarchiveInvoice(invoice.id)}
+                        >
+                          Unarchive
+                        </button>
+
+                        <button
+                          style={fullWidthBtnSecondary}
+                          onClick={() => startEditInvoice(invoice)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </section>
         </div>
       </div>
     </div>
   );
-}
+}     
+
 
 const page: CSSProperties = {
   background: "#f5f5f5",
