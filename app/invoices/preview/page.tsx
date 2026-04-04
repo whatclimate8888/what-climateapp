@@ -270,15 +270,12 @@ export default function InvoicePreviewPage() {
           </div>
         </div>
 
-        <div style={invoiceInfoBar}>
+                <div style={invoiceInfoBar}>
           <div>
             <strong>Invoice No:</strong> {invoice.id}
           </div>
           <div>
             <strong>Date:</strong> {invoice.createdAt}
-          </div>
-          <div>
-            <strong>Status:</strong> {invoice.status}
           </div>
         </div>
 
@@ -430,14 +427,12 @@ export default function InvoicePreviewPage() {
         ) : null}
 
         <div style={paymentBox}>
-          <div style={paymentTitle}>Payment Details</div>
-          <div>Bank: Lloyds Bank</div>
-          <div>Account Name: What Climate Limited</div>
-          <div>Sort Code: 30-96-26</div>
-          <div>Account Number: 34584360</div>
-        </div>
-
-        <div style={statusText}>Status: {invoice.status}</div>
+  <div style={paymentTitle}>Payment Details</div>
+  <div>Bank: Lloyds Bank</div>
+  <div>Account Name: What Climate Limited</div>
+  <div>Sort Code: 30-96-26</div>
+  <div>Account Number: 34584360</div>
+</div>
       </div>
     </div>
   );
