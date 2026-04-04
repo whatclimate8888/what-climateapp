@@ -7,6 +7,8 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 type Job = {
   id: string;
@@ -824,145 +826,125 @@ export default function Home() {
     });
   };
 
-    const saveFgasPdf = () => {
-    if (!selectedFgasCustomer) return;
+   const saveFgasPdf = async () => {
+  if (!selectedFgasCustomer) return;
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>F-Gas Report - ${escapeHtml(selectedFgasCustomer.name)}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 24px;
-              color: #111;
-            }
-            h1 {
-              margin: 0 0 16px 0;
-              font-size: 28px;
-            }
-            h2 {
-              margin: 24px 0 12px 0;
-              font-size: 18px;
-            }
-            .grid {
-              display: grid;
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 10px 16px;
-              margin-bottom: 16px;
-            }
-            .box {
-              border: 1px solid #ddd;
-              border-radius: 10px;
-              padding: 12px;
-              margin-bottom: 12px;
-              page-break-inside: avoid;
-              break-inside: avoid;
-              font-size: 13px;
-              line-height: 1.45;
-            }
-            .system-title {
-              font-weight: 700;
-              font-size: 15px;
-              margin-bottom: 8px;
-            }
-            .unit-grid {
-              display: grid;
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 6px 16px;
-            }
-            .text-box {
-              border: 1px solid #ddd;
-              border-radius: 10px;
-              padding: 12px;
-              min-height: 50px;
-              white-space: pre-wrap;
-            }
-            @media print {
-              body {
-                padding: 0;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>F-Gas Inspection Report</h1>
+  const element = document.createElement("div");
+  element.style.position = "fixed";
+  element.style.left = "-9999px";
+  element.style.top = "0";
+  element.style.width = "800px";
+  element.style.background = "#ffffff";
+  element.style.padding = "24px";
+  element.style.fontFamily = "Arial, sans-serif";
+  element.style.color = "#111";
 
-                    <div class="grid">
-            <div><strong>Customer:</strong> ${escapeHtml(selectedFgasCustomer.name)}</div>
-            <div><strong>Report Date:</strong> ${escapeHtml(fgasReportDate || "Not set")}</div>
-            <div><strong>Customer Address:</strong> ${escapeHtml(selectedFgasCustomer.address || "Not set")}</div>
-            <div><strong>Customer Email:</strong> ${escapeHtml(selectedFgasCustomer.email || "Not set")}</div>
-            <div><strong>Customer Phone:</strong> ${escapeHtml(selectedFgasCustomer.phone || "Not set")}</div>
-            <div><strong>Engineer:</strong> ${escapeHtml(fgasEngineerName || "Not set")}</div>
-            <div><strong>Engineer Cert:</strong> ${escapeHtml(fgasEngineerCertificate || "Not set")}</div>
-            <div><strong>Company Cert:</strong> ${escapeHtml(fgasCompanyCertificate || "Not set")}</div>
-            <div><strong>Company Name:</strong> What Climate Limited</div>
-            <div><strong>Company Address:</strong> 8 The Dales, Harwich, Essex, CO12 4XH</div>
-            <div><strong>Overall Leak Check Result:</strong> ${escapeHtml(fgasLeakCheckResult || "Not set")}</div>
-          </div>
+  element.innerHTML = `
+    <div style="font-family: Arial, sans-serif; color: #111;">
+      <h1 style="margin: 0 0 16px 0; font-size: 28px;">F-Gas Inspection Report</h1>
 
-          <h2>Work Carried Out</h2>
-          <div class="text-box">${escapeHtml(fgasWorkCarriedOut || "No work recorded.")}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-bottom:16px;">
+        <div><strong>Customer:</strong> ${escapeHtml(selectedFgasCustomer.name || "Not set")}</div>
+        <div><strong>Report Date:</strong> ${escapeHtml(fgasReportDate || "Not set")}</div>
+        <div><strong>Customer Address:</strong> ${escapeHtml(selectedFgasCustomer.address || "Not set")}</div>
+        <div><strong>Customer Email:</strong> ${escapeHtml(selectedFgasCustomer.email || "Not set")}</div>
+        <div><strong>Customer Phone:</strong> ${escapeHtml(selectedFgasCustomer.phone || "Not set")}</div>
+        <div><strong>Engineer:</strong> ${escapeHtml(fgasEngineerName || "Not set")}</div>
+        <div><strong>Engineer Cert:</strong> ${escapeHtml(fgasEngineerCertificate || "Not set")}</div>
+        <div><strong>Company Cert:</strong> ${escapeHtml(fgasCompanyCertificate || "Not set")}</div>
+        <div><strong>Company Name:</strong> What Climate Limited</div>
+        <div><strong>Company Address:</strong> 8 The Dales, Harwich, Essex, CO12 4XH</div>
+        <div><strong>Overall Leak Check Result:</strong> ${escapeHtml(fgasLeakCheckResult || "Not set")}</div>
+      </div>
 
-          <h2>Visit Notes</h2>
-          <div class="text-box">${escapeHtml(fgasVisitNotes || "No notes recorded.")}</div>
+      <h2 style="margin: 24px 0 12px 0; font-size: 18px;">Work Carried Out</h2>
+      <div style="border:1px solid #ddd;border-radius:10px;padding:12px;min-height:50px;white-space:pre-wrap;">
+        ${escapeHtml(fgasWorkCarriedOut || "No work recorded.")}
+      </div>
 
-          <h2>System Register</h2>
-          ${
-            fgasUnitReports.length === 0
-              ? `<div class="text-box">No units found for this customer.</div>`
-              : fgasUnitReports
-                  .map(
-                    (unit, index) => `
-                    <div class="box">
-                      <div class="system-title">System ${index + 1} - ${escapeHtml(
-                        unit.unitType || "Not set"
-                      )}</div>
+      <h2 style="margin: 24px 0 12px 0; font-size: 18px;">Visit Notes</h2>
+      <div style="border:1px solid #ddd;border-radius:10px;padding:12px;min-height:50px;white-space:pre-wrap;">
+        ${escapeHtml(fgasVisitNotes || "No notes recorded.")}
+      </div>
 
-                      <div class="unit-grid">
-                        <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
-                        <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
-                        <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
-                        <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
-                        ${
-                          unit.unitType === "External"
-                            ? `
-                        <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
-                        <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
-                        <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
-                        `
-                            : ""
-                        }
-                        <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
-                        <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
-                        <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
-                        <div><strong>Unit Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
-                      </div>
+      <h2 style="margin: 24px 0 12px 0; font-size: 18px;">System Register</h2>
+      ${
+        fgasUnitReports.length === 0
+          ? `<div style="border:1px solid #ddd;border-radius:10px;padding:12px;">No units found for this customer.</div>`
+          : fgasUnitReports
+              .map(
+                (unit, index) => `
+                  <div style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.45;page-break-inside:avoid;break-inside:avoid;">
+                    <div style="font-weight:700;font-size:15px;margin-bottom:8px;">
+                      System ${index + 1} - ${escapeHtml(unit.unitType || "Not set")}
                     </div>
-                  `
-                  )
-                  .join("")
-          }
-        </body>
-      </html>
-    `;
 
-    const printWindow = window.open("", "_blank", "width=900,height=700");
-    if (!printWindow) return;
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;">
+                      <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
+                      <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
+                      <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
+                      <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
+                      ${
+                        unit.unitType === "External"
+                          ? `
+                            <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
+                            <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
+                            <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
+                          `
+                          : ""
+                      }
+                      <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
+                      <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
+                      <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
+                      <div><strong>System Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
+                    </div>
+                  </div>
+                `
+              )
+              .join("")
+      }
+    </div>
+  `;
 
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
+  document.body.appendChild(element);
 
-    setTimeout(() => {
-      printWindow.print();
-    }, 300);
-  };
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+    });
 
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
+    const usableWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = margin;
+
+    pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
+    heightLeft -= pageHeight - margin * 2;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
+    }
+
+    pdf.save(
+      `fgas-report-${selectedFgasCustomer.name
+        .replace(/[^a-z0-9]/gi, "-")
+        .toLowerCase()}.pdf`
+    );
+  } finally {
+    document.body.removeChild(element);
+  }
+};
   const openFgasForCustomer = (customerName: string) => {
     setFgasCustomer(customerName);
     setActiveSection("fgas");
