@@ -131,7 +131,7 @@ export default function InvoicePreviewPage() {
     const ratio = Math.min(
   usableWidth / canvas.width,
   usableHeight / canvas.height
-) * 1.03;
+) * 1.08;
 
     const finalWidth = canvas.width * ratio;
     const finalHeight = canvas.height * ratio;
@@ -499,7 +499,7 @@ const companyName: CSSProperties = {
 
 const title: CSSProperties = {
   textAlign: "center",
-  color: "#4bb5e8",
+  color: "#0284c7",
   fontSize: 34,
   fontWeight: 700,
   marginTop: 16,
@@ -515,8 +515,8 @@ const metaBox: CSSProperties = {
 };
 
 const invoiceInfoBar: CSSProperties = {
-  background: "#f3f4f6",
-  border: "1px solid #d1d5db",
+  background: "#e5e7eb",
+  border: "1px solid #9ca3af",
   padding: 12,
   marginTop: 20,
   display: "grid",
@@ -536,7 +536,7 @@ const infoBox: CSSProperties = {
 };
 
 const boxHeader: CSSProperties = {
-  background: "#e5e7eb",
+  background: "#d1d5db",
   padding: "8px 10px",
   fontWeight: 700,
   fontSize: 13,
@@ -544,7 +544,7 @@ const boxHeader: CSSProperties = {
 };
 
 const boxBody: CSSProperties = {
-  border: "1px solid #d1d5db",
+  border: "1px solid #9ca3af",
   borderTop: "none",
   padding: 10,
   minHeight: 70,
@@ -576,10 +576,10 @@ const tableHeaderRow: CSSProperties = {
   gridTemplateColumns: "1fr 120px",
   gap: 10,
   padding: "10px 12px",
-  background: "#f9fafb",
+  background: "#e5e7eb",
   fontWeight: 700,
   fontSize: 13,
-  borderBottom: "1px solid #e5e7eb",
+  borderBottom: "1px solid #9ca3af",
 };
 
 const tableRow: CSSProperties = {
@@ -644,8 +644,8 @@ const summaryGrandTotal: CSSProperties = {
 const noteBox: CSSProperties = {
   marginTop: 16,
   padding: 10,
-  background: "#f7f7f7",
-  borderLeft: "4px solid #f97316",
+  background: "#f3f4f6",
+  borderLeft: "4px solid #ea580c",
   lineHeight: 1.5,
   fontSize: 12,
 };
@@ -653,7 +653,8 @@ const noteBox: CSSProperties = {
 const paymentBox: CSSProperties = {
   marginTop: 18,
   padding: 12,
-  background: "#f7f7f7",
+  background: "#f3f4f6",
+  border: "1px solid #d1d5db",
   borderRadius: 8,
   lineHeight: 1.5,
   fontSize: 13,
@@ -673,7 +674,7 @@ const statusText: CSSProperties = {
 };
 
 const logoWrap: CSSProperties = {
-  width: 180,
+  width: 260,
   maxWidth: "100%",
   minHeight: 50,
   display: "flex",
@@ -682,7 +683,7 @@ const logoWrap: CSSProperties = {
 
 const logoImg: CSSProperties = {
   width: "100%",
-  maxWidth: 180,
+  maxWidth: 260,
   height: "auto",
   display: "block",
 };
