@@ -1029,8 +1029,23 @@ export default function Home() {
 
         setJobs(Array.isArray(parsed.jobs) ? parsed.jobs : []);
         setCustomers(Array.isArray(parsed.customers) ? parsed.customers : []);
-        setQuotes(Array.isArray(parsed.quotes) ? parsed.quotes : []);
-        setInvoices(Array.isArray(parsed.invoices) ? parsed.invoices : []);
+        setQuotes(
+  Array.isArray(parsed.quotes)
+    ? parsed.quotes.map((quote) => ({
+        ...quote,
+        archived: quote.archived ?? false,
+      }))
+    : []
+);
+
+setInvoices(
+  Array.isArray(parsed.invoices)
+    ? parsed.invoices.map((invoice) => ({
+        ...invoice,
+        archived: invoice.archived ?? false,
+      }))
+    : []
+);
         setSavedFgasReports(
           parsed.savedFgasReports && typeof parsed.savedFgasReports === "object"
             ? parsed.savedFgasReports
