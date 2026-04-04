@@ -543,33 +543,37 @@ export default function Home() {
   }, [selectedFgasCustomer, savedFgasReports]);
     
 
-  useEffect(() => {
+    useEffect(() => {
     if (!loaded || !fgasCustomer) return;
 
-    const nextReport: FGasReportDraft = {
-      customer: fgasCustomer,
-      reportDate: fgasReportDate,
-      engineerName: fgasEngineerName,
-      engineerCertificate: fgasEngineerCertificate,
-      companyCertificate: fgasCompanyCertificate,
-      visitNotes: fgasVisitNotes,
-      leakCheckResult: fgasLeakCheckResult,
-      workCarriedOut: fgasWorkCarriedOut,
-      unitReports: fgasUnitReports,
-    };
-
-    setSavedFgasReports((prev) => {
-      const currentReport = prev[fgasCustomer];
-
-      if (JSON.stringify(currentReport) === JSON.stringify(nextReport)) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [fgasCustomer]: nextReport,
+    const timeout = window.setTimeout(() => {
+      const nextReport: FGasReportDraft = {
+        customer: fgasCustomer,
+        reportDate: fgasReportDate,
+        engineerName: fgasEngineerName,
+        engineerCertificate: fgasEngineerCertificate,
+        companyCertificate: fgasCompanyCertificate,
+        visitNotes: fgasVisitNotes,
+        leakCheckResult: fgasLeakCheckResult,
+        workCarriedOut: fgasWorkCarriedOut,
+        unitReports: fgasUnitReports,
       };
-    });
+
+      setSavedFgasReports((prev) => {
+        const currentReport = prev[fgasCustomer];
+
+        if (JSON.stringify(currentReport) === JSON.stringify(nextReport)) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [fgasCustomer]: nextReport,
+        };
+      });
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
   }, [
     loaded,
     fgasCustomer,
@@ -844,15 +848,17 @@ export default function Home() {
         <body>
           <h1>F-Gas Inspection Report</h1>
 
-          <div class="grid">
+                    <div class="grid">
             <div><strong>Customer:</strong> ${escapeHtml(selectedFgasCustomer.name)}</div>
             <div><strong>Report Date:</strong> ${escapeHtml(fgasReportDate || "Not set")}</div>
-            <div><strong>Address:</strong> ${escapeHtml(selectedFgasCustomer.address || "Not set")}</div>
-            <div><strong>Email:</strong> ${escapeHtml(selectedFgasCustomer.email || "Not set")}</div>
-            <div><strong>Phone:</strong> ${escapeHtml(selectedFgasCustomer.phone || "Not set")}</div>
+            <div><strong>Customer Address:</strong> ${escapeHtml(selectedFgasCustomer.address || "Not set")}</div>
+            <div><strong>Customer Email:</strong> ${escapeHtml(selectedFgasCustomer.email || "Not set")}</div>
+            <div><strong>Customer Phone:</strong> ${escapeHtml(selectedFgasCustomer.phone || "Not set")}</div>
             <div><strong>Engineer:</strong> ${escapeHtml(fgasEngineerName || "Not set")}</div>
             <div><strong>Engineer Cert:</strong> ${escapeHtml(fgasEngineerCertificate || "Not set")}</div>
             <div><strong>Company Cert:</strong> ${escapeHtml(fgasCompanyCertificate || "Not set")}</div>
+            <div><strong>Company Name:</strong> What Climate Limited</div>
+            <div><strong>Company Address:</strong> 8 The Dales, Harwich, Essex, CO12 4XH</div>
             <div><strong>Overall Leak Check Result:</strong> ${escapeHtml(fgasLeakCheckResult || "Not set")}</div>
           </div>
 
@@ -2460,7 +2466,7 @@ export default function Home() {
                 <div style={reportCard}>
                   <div style={reportTitle}>F-Gas Inspection Report Preview</div>
 
-                  <div style={reportGrid}>
+                                    <div style={reportGrid}>
                     <div>
                       <strong>Customer:</strong> {selectedFgasCustomer.name}
                     </div>
@@ -2468,13 +2474,16 @@ export default function Home() {
                       <strong>Report Date:</strong> {fgasReportDate || "Not set"}
                     </div>
                     <div>
-                      <strong>Address:</strong> {selectedFgasCustomer.address || "Not set"}
+                      <strong>Customer Address:</strong>{" "}
+                      {selectedFgasCustomer.address || "Not set"}
                     </div>
                     <div>
-                      <strong>Email:</strong> {selectedFgasCustomer.email || "Not set"}
+                      <strong>Customer Email:</strong>{" "}
+                      {selectedFgasCustomer.email || "Not set"}
                     </div>
                     <div>
-                      <strong>Phone:</strong> {selectedFgasCustomer.phone || "Not set"}
+                      <strong>Customer Phone:</strong>{" "}
+                      {selectedFgasCustomer.phone || "Not set"}
                     </div>
                     <div>
                       <strong>Engineer:</strong> {fgasEngineerName || "Not set"}
@@ -2486,6 +2495,12 @@ export default function Home() {
                     <div>
                       <strong>Company Cert:</strong>{" "}
                       {fgasCompanyCertificate || "Not set"}
+                    </div>
+                    <div>
+                      <strong>Company Name:</strong> What Climate Limited
+                    </div>
+                    <div>
+                      <strong>Company Address:</strong> 8 The Dales, Harwich, Essex, CO12 4XH
                     </div>
                     <div>
                       <strong>Overall Leak Check Result:</strong>{" "}
