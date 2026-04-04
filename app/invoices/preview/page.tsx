@@ -454,7 +454,7 @@ const actionBar: CSSProperties = {
 
 const pdf: CSSProperties = {
   background: "#ffffff",
-  padding: 24,
+  padding: "40px 24px 24px 24px",
   maxWidth: 794,
   minHeight: "auto",
   margin: "20px auto",
@@ -484,12 +484,14 @@ const header: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
+  marginTop: 10,
 };
 
 const company: CSSProperties = {
   textAlign: "right",
   lineHeight: 1.4,
   fontSize: 13,
+  marginTop: 6,
 };
 
 const companyName: CSSProperties = {
@@ -679,6 +681,7 @@ const logoWrap: CSSProperties = {
   minHeight: 50,
   display: "flex",
   alignItems: "center",
+  marginTop: 6,
 };
 
 const logoImg: CSSProperties = {
