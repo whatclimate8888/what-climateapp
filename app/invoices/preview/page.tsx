@@ -105,51 +105,49 @@ export default function InvoicePreviewPage() {
   }, [invoice]);
 
   const downloadPDF = async () => {
-    const element = document.getElementById("invoice-pdf");
-    if (!element || !invoice) return;
+  const element = document.getElementById("invoice-pdf");
+  if (!element || !invoice) return;
 
-    try {
-      setIsDownloading(true);
+  try {
+    setIsDownloading(true);
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-      });
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+    });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdfDoc = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL("image/png");
+    const pdfDoc = new jsPDF("p", "mm", "a4");
 
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 10;
-      const usableWidth = pageWidth - margin * 2;
-      const scaledHeight = (canvas.height * usableWidth) / canvas.width;
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
 
-      if (scaledHeight <= pageHeight - margin * 2) {
-        pdfDoc.addImage(imgData, "PNG", margin, margin, usableWidth, scaledHeight);
-      } else {
-        const imgWidth = usableWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = margin;
+    const usableWidth = pageWidth - margin * 2;
+    const usableHeight = pageHeight - margin * 2;
 
-        pdfDoc.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight - margin * 2;
+    // 🔥 KEY PART: scale to ALWAYS fit ONE page
+    const ratio = Math.min(
+      usableWidth / canvas.width,
+      usableHeight / canvas.height
+    );
 
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight + margin;
-          pdfDoc.addPage();
-          pdfDoc.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight - margin * 2;
-        }
-      }
+    const finalWidth = canvas.width * ratio;
+    const finalHeight = canvas.height * ratio;
 
-      pdfDoc.save(`${invoice.customer}-${invoice.id}-${invoice.createdAt}.pdf`);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+    const x = (pageWidth - finalWidth) / 2;
+    const y = (pageHeight - finalHeight) / 2;
+
+    pdfDoc.addImage(imgData, "PNG", x, y, finalWidth, finalHeight);
+
+    pdfDoc.save(
+      `${invoice.customer}-${invoice.id}-${invoice.createdAt}.pdf`
+    );
+  } finally {
+    setIsDownloading(false);
+  }
+};
 
   if (!invoice) {
     return <p style={{ padding: 20 }}>No invoice data found.</p>;
