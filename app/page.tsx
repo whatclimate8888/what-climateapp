@@ -244,6 +244,7 @@ const loadImageAsDataUrl = (src: string) =>
     img.onerror = reject;
     img.src = src;
   });
+
 export default function Home() {
   const APP_PASSWORD = "0070";
 
@@ -877,7 +878,10 @@ const saveFgasPdf = async () => {
 
       try {
         const logoData = await loadImageAsDataUrl("/logo.png");
-        pdf.addImage(logoData, "PNG", margin, 10, 34, 18);
+const logoWidth = 36;
+const logoHeight = 12;
+
+pdf.addImage(logoData, "PNG", margin, 10, logoWidth, logoHeight);
       } catch {
         // If logo fails, continue without it
       }
@@ -918,7 +922,7 @@ const saveFgasPdf = async () => {
       value: string,
       options?: { valueX?: number; width?: number; minHeight?: number }
     ) => {
-      const valueX = options?.valueX ?? 56;
+      const valueX = options?.valueX ?? 48;
       const width = options?.width ?? pageWidth - margin - valueX;
       const minHeight = options?.minHeight ?? 6;
 
@@ -1031,7 +1035,7 @@ const saveFgasPdf = async () => {
       }
 
       const estimatedHeight =
-        10 + rows.length * 7 + 10 + 18 + 10 + 18;
+  20 + rows.length * 10 + 30;
 
       ensureSpace(estimatedHeight);
 
@@ -1046,28 +1050,42 @@ const saveFgasPdf = async () => {
       let innerY = y + 13;
 
       rows.forEach((row) => {
-        const [l1, v1, l2, v2] = row;
+  const [l1, v1, l2, v2] = row;
 
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(8.5);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8.5);
 
-        const leftX = margin + 4;
-        const rightX = margin + contentWidth / 2 + 2;
-        const valueOffset = 22;
+  const leftX = margin + 4;
+  const rightX = margin + contentWidth / 2 + 2;
+  const valueOffset = 22;
 
-        pdf.text(l1, leftX, innerY);
-        pdf.setFont("helvetica", "normal");
-        pdf.text(String(v1 || "Not set"), leftX + valueOffset, innerY);
+  pdf.text(l1, leftX, innerY);
+  pdf.setFont("helvetica", "normal");
 
-        if (l2) {
-          pdf.setFont("helvetica", "bold");
-          pdf.text(l2, rightX, innerY);
-          pdf.setFont("helvetica", "normal");
-          pdf.text(String(v2 || "Not set"), rightX + valueOffset, innerY);
-        }
+  const leftLines = pdf.splitTextToSize(
+    String(v1 || "Not set"),
+    contentWidth / 2 - valueOffset - 10
+  );
 
-        innerY += 6;
-      });
+  pdf.text(leftLines, leftX + valueOffset, innerY);
+
+  let rightLines: string[] = [""];
+
+  if (l2) {
+    pdf.setFont("helvetica", "bold");
+    pdf.text(l2, rightX, innerY);
+    pdf.setFont("helvetica", "normal");
+
+    rightLines = pdf.splitTextToSize(
+      String(v2 || "Not set"),
+      contentWidth / 2 - valueOffset - 10
+    );
+
+    pdf.text(rightLines, rightX + valueOffset, innerY);
+  }
+
+  innerY += Math.max(leftLines.length, rightLines.length) * 4.5 + 1.5;
+});
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(8.5);
@@ -1094,7 +1112,7 @@ const saveFgasPdf = async () => {
       pdf.setFont("helvetica", "normal");
       pdf.text(notesLines, margin + 4, innerY + 4);
 
-      y += estimatedHeight + 5;
+      y += estimatedHeight + 8;
     };
 
     const addFooter = () => {
