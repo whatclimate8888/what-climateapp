@@ -916,204 +916,176 @@ pdf.addImage(logoData, "PNG", margin, 10, logoWidth, logoHeight);
       pdf.line(margin, y, pageWidth - margin, y);
       y += 5;
     };
+const addLabelValue = (
+  label: string,
+  value: string,
+  options?: { valueX?: number; width?: number; minHeight?: number }
+) => {
+  const labelWidth = options?.valueX ?? 58;
+  const width = options?.width ?? pageWidth - margin - (margin + labelWidth);
+  const minHeight = options?.minHeight ?? 6;
 
-    const addLabelValue = (
-      label: string,
-      value: string,
-      options?: { valueX?: number; width?: number; minHeight?: number }
-    ) => {
-      const valueX = options?.valueX ?? 48;
-      const width = options?.width ?? pageWidth - margin - valueX;
-      const minHeight = options?.minHeight ?? 6;
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      pdf.text(label, margin, y);
-
-      pdf.setFont("helvetica", "normal");
-      const lines = pdf.splitTextToSize(value || "Not set", width);
-      const lineHeight = 4.5;
-      const blockHeight = Math.max(minHeight, lines.length * lineHeight);
-
-      ensureSpace(blockHeight + 2);
-
-      pdf.text(lines, valueX, y);
-      y += blockHeight;
-    };
-
-    const addTwoColumnRow = (
-      leftLabel: string,
-      leftValue: string,
-      rightLabel: string,
-      rightValue: string
-    ) => {
-      const colGap = 8;
-      const colWidth = (contentWidth - colGap) / 2;
-      const leftX = margin;
-      const rightX = margin + colWidth + colGap;
-      const valueOffset = 26;
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-
-      const leftLabelWidth = valueOffset;
-      const rightLabelWidth = valueOffset;
-
-      const leftValueLines = pdf.splitTextToSize(
-        leftValue || "Not set",
-        colWidth - leftLabelWidth
-      );
-      const rightValueLines = pdf.splitTextToSize(
-        rightValue || "Not set",
-        colWidth - rightLabelWidth
-      );
-
-      const lineHeight = 4.5;
-      const blockHeight =
-        Math.max(leftValueLines.length, rightValueLines.length) * lineHeight + 1;
-
-      ensureSpace(blockHeight + 2);
-
-      pdf.text(leftLabel, leftX, y);
-      pdf.text(rightLabel, rightX, y);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.text(leftValueLines, leftX + leftLabelWidth, y);
-      pdf.text(rightValueLines, rightX + rightLabelWidth, y);
-
-      y += blockHeight;
-    };
-
-    const addParagraphBox = (text: string) => {
-      const boxPadding = 3;
-      const textWidth = contentWidth - boxPadding * 2;
-      const lines = pdf.splitTextToSize(text || "None", textWidth);
-      const lineHeight = 4.5;
-      const boxHeight = Math.max(12, lines.length * lineHeight + boxPadding * 2);
-
-      ensureSpace(boxHeight + 2);
-
-      pdf.setDrawColor(220, 220, 220);
-      pdf.roundedRect(margin, y, contentWidth, boxHeight, 2, 2);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.text(lines, margin + boxPadding, y + 5);
-
-      y += boxHeight + 4;
-    };
-
-    const addSystemCard = (unit: FGasUnitReport, index: number) => {
-      const rows: Array<[string, string, string, string]> = [
-        ["System", `${index + 1}`, "Type", unit.unitType || "Not set"],
-        ["Location", unit.location || "Not set", "Manufacturer", unit.manufacturer || "Not set"],
-        ["Model", unit.model || "Not set", "Serial", unit.serial || "Not set"],
-      ];
-
-      if (unit.unitType === "External") {
-        rows.push(
-          ["Refrigerant Type", unit.refrigerantType || "Not set", "Charge (kg)", unit.refrigerantCharge || "Not set"],
-          ["CO2 Equivalent", unit.co2Equivalent || "Not set", "Refrigerant Added (kg)", unit.refrigerantAdded || "0"],
-          ["Refrigerant Recovered (kg)", unit.refrigerantRecovered || "0", "Leak Check Completed", unit.leakCheckCompleted || "Not set"]
-        );
-      } else {
-        rows.push([
-          "Leak Check Completed",
-          unit.leakCheckCompleted || "Not set",
-          "Leak Detected",
-          unit.leakDetected || "Not set",
-        ]);
-      }
-
-      if (unit.unitType === "External") {
-        rows.push([
-          "Leak Detected",
-          unit.leakDetected || "Not set",
-          "",
-          "",
-        ]);
-      }
-
-      const estimatedHeight =
-  20 + rows.length * 10 + 30;
-
-      ensureSpace(estimatedHeight);
-
-      pdf.setFillColor(248, 248, 248);
-      pdf.setDrawColor(225, 225, 225);
-      pdf.roundedRect(margin, y, contentWidth, estimatedHeight, 2, 2, "FD");
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(11);
-      pdf.text(`System ${index + 1}`, margin + 4, y + 7);
-
-      let innerY = y + 13;
-
-      rows.forEach((row) => {
-  const [l1, v1, l2, v2] = row;
+  ensureSpace(minHeight + 2);
 
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8.5);
+  pdf.setFontSize(9);
+  pdf.text(label, margin, y);
 
-  const leftX = margin + 4;
-  const rightX = margin + contentWidth / 2 + 2;
-  const valueOffset = 22;
-
-  pdf.text(l1, leftX, innerY);
   pdf.setFont("helvetica", "normal");
+  const lines = pdf.splitTextToSize(value || "Not set", width);
+  const lineHeight = 4.5;
+  const blockHeight = Math.max(minHeight, lines.length * lineHeight);
 
-  const leftLines = pdf.splitTextToSize(
-    String(v1 || "Not set"),
-    contentWidth / 2 - valueOffset - 10
-  );
+  pdf.text(lines, margin + labelWidth, y);
+  y += blockHeight;
+};
 
-  pdf.text(leftLines, leftX + valueOffset, innerY);
+const addTwoColumnRow = (
+  leftLabel: string,
+  leftValue: string,
+  rightLabel: string,
+  rightValue: string
+) => {
+  const colGap = 10;
+  const colWidth = (contentWidth - colGap) / 2;
+  const leftX = margin;
+  const rightX = margin + colWidth + colGap;
 
-  let rightLines: string[] = [""];
+  const labelWidth = 34;
+  const valueWidth = colWidth - labelWidth;
 
-  if (l2) {
-    pdf.setFont("helvetica", "bold");
-    pdf.text(l2, rightX, innerY);
-    pdf.setFont("helvetica", "normal");
+  const leftValueLines = pdf.splitTextToSize(leftValue || "Not set", valueWidth);
+  const rightValueLines = pdf.splitTextToSize(rightValue || "Not set", valueWidth);
 
-    rightLines = pdf.splitTextToSize(
-      String(v2 || "Not set"),
-      contentWidth / 2 - valueOffset - 10
+  const lineHeight = 4.5;
+  const blockHeight =
+    Math.max(leftValueLines.length, rightValueLines.length) * lineHeight + 1.5;
+
+  ensureSpace(blockHeight + 2);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.text(leftLabel, leftX, y);
+  pdf.text(rightLabel, rightX, y);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.text(leftValueLines, leftX + labelWidth, y);
+  pdf.text(rightValueLines, rightX + labelWidth, y);
+
+  y += blockHeight;
+};
+
+const addSystemCard = (unit: FGasUnitReport, index: number) => {
+  const rows: Array<[string, string, string, string]> = [
+    ["System", `${index + 1}`, "Type", unit.unitType || "Not set"],
+    ["Location", unit.location || "Not set", "Manufacturer", unit.manufacturer || "Not set"],
+    ["Model", unit.model || "Not set", "Serial", unit.serial || "Not set"],
+  ];
+
+  if (unit.unitType === "External") {
+    rows.push(
+      ["Refrigerant Type", unit.refrigerantType || "Not set", "Charge (kg)", unit.refrigerantCharge || "Not set"],
+      ["CO2 Equivalent", unit.co2Equivalent || "Not set", "Added (kg)", unit.refrigerantAdded || "0"],
+      ["Recovered (kg)", unit.refrigerantRecovered || "0", "Leak Check", unit.leakCheckCompleted || "Not set"],
+      ["Leak Detected", unit.leakDetected || "Not set", "", ""]
     );
-
-    pdf.text(rightLines, rightX + valueOffset, innerY);
+  } else {
+    rows.push([
+      "Leak Check",
+      unit.leakCheckCompleted || "Not set",
+      "Leak Detected",
+      unit.leakDetected || "Not set",
+    ]);
   }
 
-  innerY += Math.max(leftLines.length, rightLines.length) * 4.5 + 1.5;
-});
+  const colGap = 10;
+  const colWidth = (contentWidth - 8 - colGap) / 2;
+  const labelWidth = 30;
+  const valueWidth = colWidth - labelWidth;
 
+  let rowsHeight = 0;
+
+  rows.forEach((row) => {
+    const [, v1, l2, v2] = row;
+
+    const leftLines = pdf.splitTextToSize(String(v1 || "Not set"), valueWidth);
+    const rightLines = l2
+      ? pdf.splitTextToSize(String(v2 || "Not set"), valueWidth)
+      : [""];
+
+    rowsHeight += Math.max(leftLines.length, rightLines.length) * 4.5 + 2;
+  });
+
+  const actionsLines = pdf.splitTextToSize(unit.actionsTaken || "None", contentWidth - 12);
+  const notesLines = pdf.splitTextToSize(unit.notes || "None", contentWidth - 12);
+
+  const estimatedHeight =
+    16 +
+    rowsHeight +
+    8 +
+    Math.max(8, actionsLines.length * 4.5 + 4) +
+    8 +
+    Math.max(8, notesLines.length * 4.5 + 4) +
+    8;
+
+  ensureSpace(estimatedHeight);
+
+  pdf.setFillColor(248, 248, 248);
+  pdf.setDrawColor(225, 225, 225);
+  pdf.roundedRect(margin, y, contentWidth, estimatedHeight, 2, 2, "FD");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.text(`System ${index + 1}`, margin + 4, y + 7);
+
+  let innerY = y + 14;
+
+  rows.forEach((row) => {
+    const [l1, v1, l2, v2] = row;
+
+    const leftX = margin + 4;
+    const rightX = margin + 8 + colWidth + colGap;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8.5);
+    pdf.text(l1, leftX, innerY);
+
+    pdf.setFont("helvetica", "normal");
+    const leftLines = pdf.splitTextToSize(String(v1 || "Not set"), valueWidth);
+    pdf.text(leftLines, leftX + labelWidth, innerY);
+
+    let rightLines: string[] = [""];
+
+    if (l2) {
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8.5);
-      pdf.text("Actions Taken", margin + 4, innerY);
-      innerY += 2;
+      pdf.text(l2, rightX, innerY);
 
-      const actionsLines = pdf.splitTextToSize(
-        unit.actionsTaken || "None",
-        contentWidth - 8
-      );
       pdf.setFont("helvetica", "normal");
-      pdf.text(actionsLines, margin + 4, innerY + 4);
+      rightLines = pdf.splitTextToSize(String(v2 || "Not set"), valueWidth);
+      pdf.text(rightLines, rightX + labelWidth, innerY);
+    }
 
-      innerY += Math.max(10, actionsLines.length * 4.5 + 4);
+    innerY += Math.max(leftLines.length, rightLines.length) * 4.5 + 2;
+  });
 
-      pdf.setFont("helvetica", "bold");
-      pdf.text("System Notes", margin + 4, innerY);
-      innerY += 2;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Actions Taken", margin + 4, innerY);
+  innerY += 5;
 
-      const notesLines = pdf.splitTextToSize(
-        unit.notes || "None",
-        contentWidth - 8
-      );
-      pdf.setFont("helvetica", "normal");
-      pdf.text(notesLines, margin + 4, innerY + 4);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(actionsLines, margin + 4, innerY);
+  innerY += Math.max(8, actionsLines.length * 4.5 + 4);
 
-      y += estimatedHeight + 8;
-    };
+  pdf.setFont("helvetica", "bold");
+  pdf.text("System Notes", margin + 4, innerY);
+  innerY += 5;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.text(notesLines, margin + 4, innerY);
+
+  y += estimatedHeight + 8;
+};
+    
 
     const addFooter = () => {
       const totalPages = pdf.getNumberOfPages();
@@ -1171,9 +1143,10 @@ pdf.addImage(logoData, "PNG", margin, 10, logoWidth, logoHeight);
 
     addSectionTitle("Inspection Summary");
     addLabelValue(
-      "Overall Leak Check Result",
-      fgasLeakCheckResult || "Not set"
-    );
+  "Overall Leak Check Result",
+  fgasLeakCheckResult || "Not set",
+  { valueX: 66 }
+);
 
     addSectionTitle("Work Carried Out");
     addParagraphBox(fgasWorkCarriedOut || "No work recorded.");
