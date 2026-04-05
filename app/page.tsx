@@ -925,21 +925,24 @@ const addLabelValue = (
   const width = options?.width ?? pageWidth - margin - (margin + labelWidth);
   const minHeight = options?.minHeight ?? 6;
 
-  ensureSpace(minHeight + 2);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+
+  const lines = pdf.splitTextToSize(value || "Not set", width);
+  const lineHeight = 4.5;
+  const textHeight = lines.length * lineHeight;
+  const blockHeight = Math.max(minHeight, textHeight);
+
+  ensureSpace(blockHeight + 4);
 
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
   pdf.text(label, margin, y);
 
   pdf.setFont("helvetica", "normal");
-  const lines = pdf.splitTextToSize(value || "Not set", width);
-  const lineHeight = 4.5;
-  const blockHeight = Math.max(minHeight, lines.length * lineHeight);
-
   pdf.text(lines, margin + labelWidth, y);
-  y += blockHeight;
-};
 
+  y += blockHeight + 2;
+};
 const addTwoColumnRow = (
   leftLabel: string,
   leftValue: string,
@@ -954,17 +957,20 @@ const addTwoColumnRow = (
   const labelWidth = 34;
   const valueWidth = colWidth - labelWidth;
 
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+
   const leftValueLines = pdf.splitTextToSize(leftValue || "Not set", valueWidth);
   const rightValueLines = pdf.splitTextToSize(rightValue || "Not set", valueWidth);
 
   const lineHeight = 4.5;
-  const blockHeight =
-    Math.max(leftValueLines.length, rightValueLines.length) * lineHeight + 1.5;
+  const leftHeight = leftValueLines.length * lineHeight;
+  const rightHeight = rightValueLines.length * lineHeight;
+  const blockHeight = Math.max(leftHeight, rightHeight, 6);
 
-  ensureSpace(blockHeight + 2);
+  ensureSpace(blockHeight + 4);
 
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
   pdf.text(leftLabel, leftX, y);
   pdf.text(rightLabel, rightX, y);
 
@@ -972,9 +978,29 @@ const addTwoColumnRow = (
   pdf.text(leftValueLines, leftX + labelWidth, y);
   pdf.text(rightValueLines, rightX + labelWidth, y);
 
-  y += blockHeight;
+  y += blockHeight + 2;
 };
 
+const addParagraphBox = (text: string) => {
+  const boxPadding = 4;
+  const textWidth = contentWidth - boxPadding * 2;
+  const lines = pdf.splitTextToSize(text || "Not set", textWidth);
+  const lineHeight = 4.5;
+  const textHeight = Math.max(8, lines.length * lineHeight);
+  const boxHeight = textHeight + boxPadding * 2;
+
+  ensureSpace(boxHeight + 2);
+
+  pdf.setDrawColor(225, 225, 225);
+  pdf.setFillColor(252, 252, 252);
+  pdf.roundedRect(margin, y, contentWidth, boxHeight, 2, 2, "FD");
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.text(lines, margin + boxPadding, y + 6);
+
+  y += boxHeight + 6;
+};
 const addSystemCard = (unit: FGasUnitReport, index: number) => {
   const rows: Array<[string, string, string, string]> = [
     ["System", `${index + 1}`, "Type", unit.unitType || "Not set"],
@@ -1016,17 +1042,18 @@ const addSystemCard = (unit: FGasUnitReport, index: number) => {
     rowsHeight += Math.max(leftLines.length, rightLines.length) * 4.5 + 2;
   });
 
-  const actionsLines = pdf.splitTextToSize(unit.actionsTaken || "None", contentWidth - 12);
-  const notesLines = pdf.splitTextToSize(unit.notes || "None", contentWidth - 12);
+  const innerTextWidth = contentWidth - 8;
+const actionsLines = pdf.splitTextToSize(unit.actionsTaken || "None", innerTextWidth);
+const notesLines = pdf.splitTextToSize(unit.notes || "None", innerTextWidth);
 
   const estimatedHeight =
-    16 +
-    rowsHeight +
-    8 +
-    Math.max(8, actionsLines.length * 4.5 + 4) +
-    8 +
-    Math.max(8, notesLines.length * 4.5 + 4) +
-    8;
+  14 +
+  rowsHeight +
+  6 +
+  Math.max(10, actionsLines.length * 4.5 + 4) +
+  6 +
+  Math.max(10, notesLines.length * 4.5 + 4) +
+  6;
 
   ensureSpace(estimatedHeight);
 
@@ -1159,16 +1186,10 @@ const addSystemCard = (unit: FGasUnitReport, index: number) => {
     if (fgasUnitReports.length === 0) {
       addParagraphBox("No units found for this customer.");
     } else {
-      for (let i = 0; i < fgasUnitReports.length; i++) {
-        const unit = fgasUnitReports[i];
-
-        if (y > bottomLimit - 70) {
-          pdf.addPage();
-          await addPageHeader(false);
-        }
-
-        addSystemCard(unit, i);
-      }
+     for (let i = 0; i < fgasUnitReports.length; i++) {
+  const unit = fgasUnitReports[i];
+  addSystemCard(unit, i);
+} 
     }
 
     addFooter();
