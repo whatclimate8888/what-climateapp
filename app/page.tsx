@@ -1148,7 +1148,9 @@ const notesLines = pdf.splitTextToSize(unit.notes || "None", innerTextWidth);
       "Phone",
       selectedFgasCustomer.phone || "Not set"
     );
-    addLabelValue("Address", selectedFgasCustomer.address || "Not set");
+    addLabelValue("Address", selectedFgasCustomer.address || "Not set", {
+  valueX: 34,
+});
 
     addSectionTitle("Engineer & Company Details");
     addTwoColumnRow(
@@ -1164,9 +1166,12 @@ const notesLines = pdf.splitTextToSize(unit.notes || "None", innerTextWidth);
       fgasCompanyCertificate || "Not set"
     );
     addLabelValue(
-      "Company Address",
-      "8 The Dales, Harwich, Essex, CO12 4XH"
-    );
+  "Company Address",
+  "8 The Dales, Harwich, Essex, CO12 4XH",
+  {
+    valueX: 34,
+  }
+);
 
     addSectionTitle("Inspection Summary");
     addLabelValue(
