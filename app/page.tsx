@@ -7,7 +7,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import html2canvas from "html2canvas";
+
 import jsPDF from "jspdf";
 
 type Job = {
@@ -223,6 +223,27 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
+const loadImageAsDataUrl = (src: string) =>
+  new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        reject(new Error("Could not create canvas context"));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
 export default function Home() {
   const APP_PASSWORD = "0070";
 
@@ -825,126 +846,353 @@ export default function Home() {
       return updated;
     });
   };
-
-   const saveFgasPdf = async () => {
+const saveFgasPdf = async () => {
   if (!selectedFgasCustomer) return;
 
-  const element = document.createElement("div");
-  element.style.position = "fixed";
-  element.style.left = "-9999px";
-  element.style.top = "0";
-  element.style.width = "800px";
-  element.style.background = "#ffffff";
-  element.style.padding = "24px";
-  element.style.fontFamily = "Arial, sans-serif";
-  element.style.color = "#111";
-
-  element.innerHTML = `
-    <div style="font-family: Arial, sans-serif; color: #111;">
-      <h1 style="margin: 0 0 16px 0; font-size: 28px;">F-Gas Inspection Report</h1>
-
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-bottom:16px;">
-        <div><strong>Customer:</strong> ${escapeHtml(selectedFgasCustomer.name || "Not set")}</div>
-        <div><strong>Report Date:</strong> ${escapeHtml(fgasReportDate || "Not set")}</div>
-        <div><strong>Customer Address:</strong> ${escapeHtml(selectedFgasCustomer.address || "Not set")}</div>
-        <div><strong>Customer Email:</strong> ${escapeHtml(selectedFgasCustomer.email || "Not set")}</div>
-        <div><strong>Customer Phone:</strong> ${escapeHtml(selectedFgasCustomer.phone || "Not set")}</div>
-        <div><strong>Engineer:</strong> ${escapeHtml(fgasEngineerName || "Not set")}</div>
-        <div><strong>Engineer Cert:</strong> ${escapeHtml(fgasEngineerCertificate || "Not set")}</div>
-        <div><strong>Company Cert:</strong> ${escapeHtml(fgasCompanyCertificate || "Not set")}</div>
-        <div><strong>Company Name:</strong> What Climate Limited</div>
-        <div><strong>Company Address:</strong> 8 The Dales, Harwich, Essex, CO12 4XH</div>
-        <div><strong>Overall Leak Check Result:</strong> ${escapeHtml(fgasLeakCheckResult || "Not set")}</div>
-      </div>
-
-      <h2 style="margin: 24px 0 12px 0; font-size: 18px;">Work Carried Out</h2>
-      <div style="border:1px solid #ddd;border-radius:10px;padding:12px;min-height:50px;white-space:pre-wrap;">
-        ${escapeHtml(fgasWorkCarriedOut || "No work recorded.")}
-      </div>
-
-      <h2 style="margin: 24px 0 12px 0; font-size: 18px;">Visit Notes</h2>
-      <div style="border:1px solid #ddd;border-radius:10px;padding:12px;min-height:50px;white-space:pre-wrap;">
-        ${escapeHtml(fgasVisitNotes || "No notes recorded.")}
-      </div>
-
-      <h2 style="margin: 24px 0 12px 0; font-size: 18px;">System Register</h2>
-      ${
-        fgasUnitReports.length === 0
-          ? `<div style="border:1px solid #ddd;border-radius:10px;padding:12px;">No units found for this customer.</div>`
-          : fgasUnitReports
-              .map(
-                (unit, index) => `
-                  <div style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.45;page-break-inside:avoid;break-inside:avoid;">
-                    <div style="font-weight:700;font-size:15px;margin-bottom:8px;">
-                      System ${index + 1} - ${escapeHtml(unit.unitType || "Not set")}
-                    </div>
-
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;">
-                      <div><strong>Location:</strong> ${escapeHtml(unit.location || "Not set")}</div>
-                      <div><strong>Manufacturer:</strong> ${escapeHtml(unit.manufacturer || "Not set")}</div>
-                      <div><strong>Model:</strong> ${escapeHtml(unit.model || "Not set")}</div>
-                      <div><strong>Serial:</strong> ${escapeHtml(unit.serial || "Not set")}</div>
-                      ${
-                        unit.unitType === "External"
-                          ? `
-                            <div><strong>Refrigerant Type:</strong> ${escapeHtml(unit.refrigerantType || "Not set")}</div>
-                            <div><strong>Refrigerant Charge:</strong> ${escapeHtml(unit.refrigerantCharge || "Not set")} kg</div>
-                            <div><strong>CO2 Equivalent:</strong> ${escapeHtml(unit.co2Equivalent || "Not set")} tCO2e</div>
-                          `
-                          : ""
-                      }
-                      <div><strong>Leak Check Completed:</strong> ${escapeHtml(unit.leakCheckCompleted || "Not set")}</div>
-                      <div><strong>Leak Detected:</strong> ${escapeHtml(unit.leakDetected || "Not set")}</div>
-                      <div><strong>Actions Taken:</strong> ${escapeHtml(unit.actionsTaken || "None")}</div>
-                      <div><strong>System Notes:</strong> ${escapeHtml(unit.notes || "None")}</div>
-                    </div>
-                  </div>
-                `
-              )
-              .join("")
-      }
-    </div>
-  `;
-
-  document.body.appendChild(element);
-
   try {
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-    });
-
-    const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const margin = 10;
-    const usableWidth = pageWidth - margin * 2;
-    const imgHeight = (canvas.height * usableWidth) / canvas.width;
+    const margin = 12;
+    const contentWidth = pageWidth - margin * 2;
+    const bottomLimit = pageHeight - 14;
 
-    let heightLeft = imgHeight;
-    let position = margin;
+    let y = 16;
 
-    pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
-    heightLeft -= pageHeight - margin * 2;
+    const ensureSpace = (needed = 10) => {
+      if (y + needed > bottomLimit) {
+        pdf.addPage();
+        y = 16;
+      }
+    };
 
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight + margin;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
-      heightLeft -= pageHeight - margin * 2;
+    const addPageHeader = async (isFirstPage = false) => {
+      if (!isFirstPage) {
+        pdf.setDrawColor(230, 230, 230);
+        pdf.line(margin, 12, pageWidth - margin, 12);
+        y = 18;
+        return;
+      }
+
+      try {
+        const logoData = await loadImageAsDataUrl("/logo.png");
+        pdf.addImage(logoData, "PNG", margin, 10, 34, 18);
+      } catch {
+        // If logo fails, continue without it
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("F-Gas Inspection Report", pageWidth - margin, 18, {
+        align: "right",
+      });
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(90);
+      pdf.text("What Climate Limited", pageWidth - margin, 24, {
+        align: "right",
+      });
+
+      pdf.setDrawColor(230, 230, 230);
+      pdf.line(margin, 32, pageWidth - margin, 32);
+      pdf.setTextColor(0);
+      y = 38;
+    };
+
+    const addSectionTitle = (title: string) => {
+      ensureSpace(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.text(title, margin, y);
+      y += 6;
+
+      pdf.setDrawColor(240, 240, 240);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 5;
+    };
+
+    const addLabelValue = (
+      label: string,
+      value: string,
+      options?: { valueX?: number; width?: number; minHeight?: number }
+    ) => {
+      const valueX = options?.valueX ?? 56;
+      const width = options?.width ?? pageWidth - margin - valueX;
+      const minHeight = options?.minHeight ?? 6;
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.text(label, margin, y);
+
+      pdf.setFont("helvetica", "normal");
+      const lines = pdf.splitTextToSize(value || "Not set", width);
+      const lineHeight = 4.5;
+      const blockHeight = Math.max(minHeight, lines.length * lineHeight);
+
+      ensureSpace(blockHeight + 2);
+
+      pdf.text(lines, valueX, y);
+      y += blockHeight;
+    };
+
+    const addTwoColumnRow = (
+      leftLabel: string,
+      leftValue: string,
+      rightLabel: string,
+      rightValue: string
+    ) => {
+      const colGap = 8;
+      const colWidth = (contentWidth - colGap) / 2;
+      const leftX = margin;
+      const rightX = margin + colWidth + colGap;
+      const valueOffset = 26;
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+
+      const leftLabelWidth = valueOffset;
+      const rightLabelWidth = valueOffset;
+
+      const leftValueLines = pdf.splitTextToSize(
+        leftValue || "Not set",
+        colWidth - leftLabelWidth
+      );
+      const rightValueLines = pdf.splitTextToSize(
+        rightValue || "Not set",
+        colWidth - rightLabelWidth
+      );
+
+      const lineHeight = 4.5;
+      const blockHeight =
+        Math.max(leftValueLines.length, rightValueLines.length) * lineHeight + 1;
+
+      ensureSpace(blockHeight + 2);
+
+      pdf.text(leftLabel, leftX, y);
+      pdf.text(rightLabel, rightX, y);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.text(leftValueLines, leftX + leftLabelWidth, y);
+      pdf.text(rightValueLines, rightX + rightLabelWidth, y);
+
+      y += blockHeight;
+    };
+
+    const addParagraphBox = (text: string) => {
+      const boxPadding = 3;
+      const textWidth = contentWidth - boxPadding * 2;
+      const lines = pdf.splitTextToSize(text || "None", textWidth);
+      const lineHeight = 4.5;
+      const boxHeight = Math.max(12, lines.length * lineHeight + boxPadding * 2);
+
+      ensureSpace(boxHeight + 2);
+
+      pdf.setDrawColor(220, 220, 220);
+      pdf.roundedRect(margin, y, contentWidth, boxHeight, 2, 2);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.text(lines, margin + boxPadding, y + 5);
+
+      y += boxHeight + 4;
+    };
+
+    const addSystemCard = (unit: FGasUnitReport, index: number) => {
+      const rows: Array<[string, string, string, string]> = [
+        ["System", `${index + 1}`, "Type", unit.unitType || "Not set"],
+        ["Location", unit.location || "Not set", "Manufacturer", unit.manufacturer || "Not set"],
+        ["Model", unit.model || "Not set", "Serial", unit.serial || "Not set"],
+      ];
+
+      if (unit.unitType === "External") {
+        rows.push(
+          ["Refrigerant Type", unit.refrigerantType || "Not set", "Charge (kg)", unit.refrigerantCharge || "Not set"],
+          ["CO2 Equivalent", unit.co2Equivalent || "Not set", "Refrigerant Added (kg)", unit.refrigerantAdded || "0"],
+          ["Refrigerant Recovered (kg)", unit.refrigerantRecovered || "0", "Leak Check Completed", unit.leakCheckCompleted || "Not set"]
+        );
+      } else {
+        rows.push([
+          "Leak Check Completed",
+          unit.leakCheckCompleted || "Not set",
+          "Leak Detected",
+          unit.leakDetected || "Not set",
+        ]);
+      }
+
+      if (unit.unitType === "External") {
+        rows.push([
+          "Leak Detected",
+          unit.leakDetected || "Not set",
+          "",
+          "",
+        ]);
+      }
+
+      const estimatedHeight =
+        10 + rows.length * 7 + 10 + 18 + 10 + 18;
+
+      ensureSpace(estimatedHeight);
+
+      pdf.setFillColor(248, 248, 248);
+      pdf.setDrawColor(225, 225, 225);
+      pdf.roundedRect(margin, y, contentWidth, estimatedHeight, 2, 2, "FD");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.text(`System ${index + 1}`, margin + 4, y + 7);
+
+      let innerY = y + 13;
+
+      rows.forEach((row) => {
+        const [l1, v1, l2, v2] = row;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8.5);
+
+        const leftX = margin + 4;
+        const rightX = margin + contentWidth / 2 + 2;
+        const valueOffset = 22;
+
+        pdf.text(l1, leftX, innerY);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(String(v1 || "Not set"), leftX + valueOffset, innerY);
+
+        if (l2) {
+          pdf.setFont("helvetica", "bold");
+          pdf.text(l2, rightX, innerY);
+          pdf.setFont("helvetica", "normal");
+          pdf.text(String(v2 || "Not set"), rightX + valueOffset, innerY);
+        }
+
+        innerY += 6;
+      });
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8.5);
+      pdf.text("Actions Taken", margin + 4, innerY);
+      innerY += 2;
+
+      const actionsLines = pdf.splitTextToSize(
+        unit.actionsTaken || "None",
+        contentWidth - 8
+      );
+      pdf.setFont("helvetica", "normal");
+      pdf.text(actionsLines, margin + 4, innerY + 4);
+
+      innerY += Math.max(10, actionsLines.length * 4.5 + 4);
+
+      pdf.setFont("helvetica", "bold");
+      pdf.text("System Notes", margin + 4, innerY);
+      innerY += 2;
+
+      const notesLines = pdf.splitTextToSize(
+        unit.notes || "None",
+        contentWidth - 8
+      );
+      pdf.setFont("helvetica", "normal");
+      pdf.text(notesLines, margin + 4, innerY + 4);
+
+      y += estimatedHeight + 5;
+    };
+
+    const addFooter = () => {
+      const totalPages = pdf.getNumberOfPages();
+
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(120);
+        pdf.text(
+          `What Climate Limited  |  F-Gas Inspection Report  |  Page ${i} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 6,
+          { align: "center" }
+        );
+      }
+
+      pdf.setTextColor(0);
+    };
+
+    await addPageHeader(true);
+
+    addSectionTitle("Customer & Visit Details");
+    addTwoColumnRow(
+      "Customer",
+      selectedFgasCustomer.name || "Not set",
+      "Report Date",
+      fgasReportDate || "Not set"
+    );
+    addTwoColumnRow(
+      "Email",
+      selectedFgasCustomer.email || "Not set",
+      "Phone",
+      selectedFgasCustomer.phone || "Not set"
+    );
+    addLabelValue("Address", selectedFgasCustomer.address || "Not set");
+
+    addSectionTitle("Engineer & Company Details");
+    addTwoColumnRow(
+      "Engineer",
+      fgasEngineerName || "Not set",
+      "Engineer Cert",
+      fgasEngineerCertificate || "Not set"
+    );
+    addTwoColumnRow(
+      "Company",
+      "What Climate Limited",
+      "Company Cert",
+      fgasCompanyCertificate || "Not set"
+    );
+    addLabelValue(
+      "Company Address",
+      "8 The Dales, Harwich, Essex, CO12 4XH"
+    );
+
+    addSectionTitle("Inspection Summary");
+    addLabelValue(
+      "Overall Leak Check Result",
+      fgasLeakCheckResult || "Not set"
+    );
+
+    addSectionTitle("Work Carried Out");
+    addParagraphBox(fgasWorkCarriedOut || "No work recorded.");
+
+    addSectionTitle("Visit Notes");
+    addParagraphBox(fgasVisitNotes || "No notes recorded.");
+
+    addSectionTitle("System Register");
+
+    if (fgasUnitReports.length === 0) {
+      addParagraphBox("No units found for this customer.");
+    } else {
+      for (let i = 0; i < fgasUnitReports.length; i++) {
+        const unit = fgasUnitReports[i];
+
+        if (y > bottomLimit - 70) {
+          pdf.addPage();
+          await addPageHeader(false);
+        }
+
+        addSystemCard(unit, i);
+      }
     }
+
+    addFooter();
 
     pdf.save(
       `fgas-report-${selectedFgasCustomer.name
         .replace(/[^a-z0-9]/gi, "-")
         .toLowerCase()}.pdf`
     );
-  } finally {
-    document.body.removeChild(element);
+  } catch (error) {
+    console.error("Failed to generate F-Gas PDF", error);
+    alert("Could not generate F-Gas PDF");
   }
 };
+   
   const openFgasForCustomer = (customerName: string) => {
     setFgasCustomer(customerName);
     setActiveSection("fgas");
