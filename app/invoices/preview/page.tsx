@@ -112,20 +112,15 @@ export default function InvoicePreviewPage() {
     setIsDownloading(true);
 
     const canvas = await html2canvas(element, {
-      scale: 3,
+      scale: 2,
       backgroundColor: "#ffffff",
       useCORS: true,
+      logging: false,
+      windowWidth: 1200,
     });
 
     const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-  orientation: "portrait",
-  unit: "mm",
-  format: "a4",
-});
-
-pdf.setDisplayMode("fullwidth", "continuous");
-pdf.internal.scaleFactor = 1;
+    const pdf = new jsPDF("p", "mm", "a4");
 
     const pageWidth = 210;
     const pageHeight = 297;
@@ -134,23 +129,20 @@ pdf.internal.scaleFactor = 1;
     const usableWidth = pageWidth - margin * 2;
     const usableHeight = pageHeight - margin * 2;
 
-    // 🔥 KEY PART: scale to ALWAYS fit ONE page
     const ratio = Math.min(
-  usableWidth / canvas.width,
-  usableHeight / canvas.height
-) * 1.08;
+      usableWidth / canvas.width,
+      usableHeight / canvas.height
+    );
 
     const finalWidth = canvas.width * ratio;
     const finalHeight = canvas.height * ratio;
 
     const x = (pageWidth - finalWidth) / 2;
-    const y = (pageHeight - finalHeight) / 2;
+    const y = margin;
 
-    pdfDoc.addImage(imgData, "PNG", x, y, finalWidth, finalHeight);
+    pdf.addImage(imgData, "PNG", x, y, finalWidth, finalHeight);
 
-    pdfDoc.save(
-      `${invoice.customer}-${invoice.id}-${invoice.createdAt}.pdf`
-    );
+    pdf.save(`${invoice.customer}-${invoice.id}-${invoice.createdAt}.pdf`);
   } finally {
     setIsDownloading(false);
   }
@@ -173,37 +165,39 @@ pdf.internal.scaleFactor = 1;
 
   const responsivePdf: CSSProperties = {
   ...pdf,
-  padding: isMobile ? 18 : 24,
-  margin: isMobile ? "0 auto 20px" : "20px auto",
+  width: 794,
+  maxWidth: 794,
+  padding: 24,
+  margin: "20px auto",
   minHeight: "auto",
-  borderRadius: isMobile ? 12 : 0,
+  borderRadius: 0,
 };
 
   const responsiveHeader: CSSProperties = {
-    ...header,
-    flexDirection: isMobile ? "column" : "row",
-    gap: isMobile ? 18 : 24,
-    alignItems: "flex-start",
-  };
-
-  const responsiveCompany: CSSProperties = {
-    ...company,
-    textAlign: isMobile ? "left" : "right",
-    width: isMobile ? "100%" : "auto",
-  };
-
-  const responsiveTitle: CSSProperties = {
-    ...title,
-    fontSize: isMobile ? 28 : 42,
-    marginTop: isMobile ? 22 : 28,
-    marginBottom: isMobile ? 14 : 10,
-  };
-
-  const responsiveRow: CSSProperties = {
-    ...row,
-    flexDirection: isMobile ? "column" : "row",
-    gap: isMobile ? 14 : 24,
-  };
+  ...header,
+  flexDirection: "row",
+  gap: 24,
+  alignItems: "flex-start",
+};
+const responsiveCompany: CSSProperties = {
+  ...company,
+  textAlign: "right",
+  width: "auto",
+};
+  
+const responsiveTitle: CSSProperties = {
+  ...title,
+  fontSize: 42,
+  marginTop: 28,
+  marginBottom: 10,
+};
+  
+const responsiveRow: CSSProperties = {
+  ...row,
+  flexDirection: "row",
+  gap: 24,
+};
+  
 
   const responsiveBox: CSSProperties = {
     ...infoBox,
@@ -211,22 +205,22 @@ pdf.internal.scaleFactor = 1;
   };
 
   const responsiveMetaBox: CSSProperties = {
-    ...metaBox,
-    textAlign: isMobile ? "left" : "center",
-    fontSize: isMobile ? 13 : 14,
-    marginTop: isMobile ? 18 : 20,
-    marginBottom: isMobile ? 22 : 30,
-  };
+  ...metaBox,
+  textAlign: "center",
+  fontSize: 14,
+  marginTop: 20,
+  marginBottom: 30,
+};
 
   const responsiveTotalsWrap: CSSProperties = {
-    ...totalsWrap,
-    justifyContent: isMobile ? "stretch" : "flex-end",
-  };
+  ...totalsWrap,
+  justifyContent: "flex-end",
+};
 
   const responsiveSummaryTable: CSSProperties = {
-    ...summaryTable,
-    width: isMobile ? "100%" : 360,
-  };
+  ...summaryTable,
+  width: 360,
+};
 
   return (
     <div style={responsivePage}>
