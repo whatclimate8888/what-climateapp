@@ -118,7 +118,14 @@ export default function InvoicePreviewPage() {
     });
 
     const imgData = canvas.toDataURL("image/png");
-    const pdfDoc = new jsPDF("p", "mm", "a4");
+    const pdf = new jsPDF({
+  orientation: "portrait",
+  unit: "mm",
+  format: "a4",
+});
+
+pdf.setDisplayMode("fullwidth", "continuous");
+pdf.internal.scaleFactor = 1;
 
     const pageWidth = 210;
     const pageHeight = 297;
