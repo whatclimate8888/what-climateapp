@@ -119,8 +119,13 @@ export default function InvoicePreviewPage() {
       windowWidth: 1200,
     });
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL("image/jpeg", 0.8);
+    const pdf = new jsPDF({
+  orientation: "p",
+  unit: "mm",
+  format: "a4",
+  compress: true,
+});
 
     const pageWidth = 210;
     const pageHeight = 297;
