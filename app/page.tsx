@@ -253,9 +253,7 @@ const loadImageAsDataUrl = (src: string) =>
     img.src = src;
   });
 
-    img.onerror = reject;
-    img.src = src;
-  });
+    
 
 export default function Home() {
   const APP_PASSWORD = "0070";
