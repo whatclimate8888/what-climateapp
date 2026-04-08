@@ -227,10 +227,15 @@ const loadImageAsDataUrl = (src: string) =>
   new Promise<string>((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
+
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
+      const maxWidth = 400;
+      const scale = Math.min(1, maxWidth / img.naturalWidth);
+
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+
       const ctx = canvas.getContext("2d");
 
       if (!ctx) {
@@ -238,9 +243,10 @@ const loadImageAsDataUrl = (src: string) =>
         return;
       }
 
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.7));
     };
+
     img.onerror = reject;
     img.src = src;
   });
@@ -851,7 +857,15 @@ const saveFgasPdf = async () => {
   if (!selectedFgasCustomer) return;
 
   try {
-    const pdf = new jsPDF("p", "mm", "a4");
+    const pdf = new jsPDF({
+  orientation: "p",
+  unit: "mm",
+  format: "a4",
+  compress: true,
+});
+
+const pageWidth = pdf.internal.pageSize.getWidth();
+const pageHeight = pdf.internal.pageSize.getHeight();
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
@@ -881,7 +895,7 @@ const saveFgasPdf = async () => {
 const logoWidth = 36;
 const logoHeight = 12;
 
-pdf.addImage(logoData, "PNG", margin, 10, logoWidth, logoHeight);
+pdf.addImage(logoData, "JPEG", margin, 10, logoWidth, logoHeight);
       } catch {
         // If logo fails, continue without it
       }
