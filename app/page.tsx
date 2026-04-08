@@ -857,30 +857,28 @@ const saveFgasPdf = async () => {
   if (!selectedFgasCustomer) return;
 
   try {
-    const pdf = new jsPDF({
-  orientation: "p",
-  unit: "mm",
-  format: "a4",
-  compress: true,
-});
+  const pdf = new jsPDF({
+    orientation: "p",
+    unit: "mm",
+    format: "a4",
+    compress: true,
+  });
 
-const pageWidth = pdf.internal.pageSize.getWidth();
-const pageHeight = pdf.internal.pageSize.getHeight();
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
 
-    const margin = 12;
-    const contentWidth = pageWidth - margin * 2;
-    const bottomLimit = pageHeight - 14;
+  const margin = 12;
+  const contentWidth = pageWidth - margin * 2;
+  const bottomLimit = pageHeight - 14;
 
-    let y = 16;
+  let y = 16;
 
-    const ensureSpace = (needed = 10) => {
-      if (y + needed > bottomLimit) {
-        pdf.addPage();
-        y = 16;
-      }
-    };
+  const ensureSpace = (needed = 10) => {
+    if (y + needed > bottomLimit) {
+      pdf.addPage();
+      y = 16;
+    }
+  };
 
     const addPageHeader = async (isFirstPage = false) => {
       if (!isFirstPage) {
