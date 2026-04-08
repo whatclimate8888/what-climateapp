@@ -29,7 +29,8 @@ const COMPANY = {
   utr: "8171026093",
 };
 
-const toNumber = (value: string) => Number(value || 0);
+const toNumber = (value: string) =>
+  Number(String(value || "0").replace(/,/g, "").trim());
 
 const formatMoney = (value: number) =>
   value.toLocaleString("en-GB", {
@@ -89,10 +90,18 @@ export default function QuotePreviewPage() {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
+        logging: false,
+        windowWidth: 1200,
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdfDoc = new jsPDF("p", "mm", "a4");
+      const imgData = canvas.toDataURL("image/jpeg", 0.8);
+
+      const pdfDoc = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
 
       const pageWidth = 210;
       const pageHeight = 297;
@@ -101,20 +110,34 @@ export default function QuotePreviewPage() {
       const scaledHeight = (canvas.height * usableWidth) / canvas.width;
 
       if (scaledHeight <= pageHeight - margin * 2) {
-        pdfDoc.addImage(imgData, "PNG", margin, margin, usableWidth, scaledHeight);
+        pdfDoc.addImage(
+          imgData,
+          "JPEG",
+          margin,
+          margin,
+          usableWidth,
+          scaledHeight
+        );
       } else {
         const imgWidth = usableWidth;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = margin;
 
-        pdfDoc.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+        pdfDoc.addImage(imgData, "JPEG", margin, position, imgWidth, imgHeight);
         heightLeft -= pageHeight - margin * 2;
 
         while (heightLeft > 0) {
           position = heightLeft - imgHeight + margin;
           pdfDoc.addPage();
-          pdfDoc.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+          pdfDoc.addImage(
+            imgData,
+            "JPEG",
+            margin,
+            position,
+            imgWidth,
+            imgHeight
+          );
           heightLeft -= pageHeight - margin * 2;
         }
       }
@@ -152,7 +175,7 @@ export default function QuotePreviewPage() {
     ...header,
     flexDirection: isMobile ? "column" : "row",
     gap: isMobile ? 18 : 24,
-    alignItems: isMobile ? "flex-start" : "flex-start",
+    alignItems: "flex-start",
   };
 
   const responsiveCompany: CSSProperties = {
@@ -223,7 +246,13 @@ export default function QuotePreviewPage() {
 
             <div style={{ marginTop: 10 }}>{COMPANY.mobile}</div>
             <div>{COMPANY.phone}</div>
-            <div style={{ marginTop: 10, color: "#2563eb", wordBreak: "break-word" }}>
+            <div
+              style={{
+                marginTop: 10,
+                color: "#2563eb",
+                wordBreak: "break-word",
+              }}
+            >
               {COMPANY.email}
             </div>
           </div>
@@ -283,7 +312,9 @@ export default function QuotePreviewPage() {
             {quote.note ? (
               <div style={noteBox}>
                 <strong>Please note:</strong>
-                <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{quote.note}</div>
+                <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
+                  {quote.note}
+                </div>
               </div>
             ) : null}
           </div>
