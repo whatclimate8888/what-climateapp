@@ -243,9 +243,15 @@ const loadImageAsDataUrl = (src: string) =>
         return;
       }
 
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL("image/jpeg", 0.7));
+
+      resolve(canvas.toDataURL("image/png"));
     };
+
+    img.onerror = reject;
+    img.src = src;
+  });
 
     img.onerror = reject;
     img.src = src;
@@ -893,7 +899,7 @@ const saveFgasPdf = async () => {
 const logoWidth = 36;
 const logoHeight = 12;
 
-pdf.addImage(logoData, "JPEG", margin, 10, logoWidth, logoHeight);
+pdf.addImage(logoData, "PNG", margin, 10, logoWidth, logoHeight);
       } catch {
         // If logo fails, continue without it
       }
