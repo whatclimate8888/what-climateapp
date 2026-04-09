@@ -94,6 +94,7 @@ type QuotePreviewData = {
 type QuoteDraft = {
   quoteCustomer: string;
   quoteSiteCustomer: string;
+  quoteSiteAddressManual: string;
   quoteDescription: string;
   quoteNote: string;
   quoteAmount: string;
@@ -289,6 +290,7 @@ export default function Home() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteCustomer, setQuoteCustomer] = useState("");
   const [quoteSiteCustomer, setQuoteSiteCustomer] = useState("");
+  const [quoteSiteAddressManual, setQuoteSiteAddressManual] = useState("");
   const [quoteDescription, setQuoteDescription] = useState("");
   const [quoteNote, setQuoteNote] = useState("Please note:");
   const [quoteAmount, setQuoteAmount] = useState("");
@@ -401,6 +403,7 @@ export default function Home() {
         const parsedDraft: QuoteDraft = JSON.parse(savedQuoteDraft);
         setQuoteCustomer(parsedDraft.quoteCustomer || "");
         setQuoteSiteCustomer(parsedDraft.quoteSiteCustomer || "");
+        setQuoteSiteAddressManual(parsedDraft.quoteSiteAddressManual || "");
         setQuoteDescription(parsedDraft.quoteDescription || "");
         setQuoteNote(parsedDraft.quoteNote || "Please note:");
         setQuoteAmount(parsedDraft.quoteAmount || "");
@@ -458,6 +461,7 @@ export default function Home() {
     const quoteDraft: QuoteDraft = {
       quoteCustomer,
       quoteSiteCustomer,
+      quoteSiteAddressManual,
       quoteDescription,
       quoteNote,
       quoteAmount,
@@ -681,16 +685,17 @@ export default function Home() {
   };
 
   const resetQuoteForm = () => {
-    setQuoteCustomer("");
-    setQuoteSiteCustomer("");
-    setQuoteDescription("");
-    setQuoteNote("Please note:");
-    setQuoteAmount("");
-    setQuoteVatRate(20);
-    setQuoteStatus("Draft");
-    setEditingQuoteId(null);
-    localStorage.removeItem("what-climate-quote-draft");
-  };
+  setQuoteCustomer("");
+  setQuoteSiteCustomer("");
+  setQuoteSiteAddressManual(""); 
+  setQuoteDescription("");
+  setQuoteNote("Please note:");
+  setQuoteAmount("");
+  setQuoteVatRate(20);
+  setQuoteStatus("Draft");
+  setEditingQuoteId(null);
+  localStorage.removeItem("what-climate-quote-draft");
+};
 
   const resetInvoiceForm = () => {
     setInvoiceCustomer("");
@@ -1570,7 +1575,7 @@ setInvoices(
                 customerEmail: matchedCustomer?.email || "",
                 siteCustomer: quoteSiteCustomer,
                 siteName: quoteSiteCustomer,
-                siteAddress: matchedSiteCustomer?.address || "",
+                siteAddress: quoteSiteAddressManual || matchedSiteCustomer?.address || "",
                 description: quoteDescription,
                 note: quoteNote,
                 amount: quoteAmount,
@@ -1588,7 +1593,7 @@ setInvoices(
         customerEmail: matchedCustomer?.email || "",
         siteCustomer: quoteSiteCustomer,
         siteName: quoteSiteCustomer,
-        siteAddress: matchedSiteCustomer?.address || "",
+        siteAddress: quoteSiteAddressManual || matchedSiteCustomer?.address || "",
         description: quoteDescription,
         note: quoteNote,
         amount: quoteAmount,
@@ -1602,27 +1607,28 @@ setInvoices(
     }
 
     resetQuoteForm();
-    setActiveSection("quotes");
-  };
+setActiveSection("quotes");
+};
 
-  const startEditQuote = (quote: Quote) => {
-    setEditingQuoteId(quote.id);
-    setQuoteCustomer(quote.customer);
-    setQuoteSiteCustomer(quote.siteCustomer || "");
-    setQuoteDescription(quote.description);
-    setQuoteNote(quote.note);
-    setQuoteAmount(quote.amount);
-    setQuoteVatRate(quote.vatRate);
-    setQuoteStatus(quote.status);
-    setActiveSection("quotes");
+const startEditQuote = (quote: Quote) => {
+  setEditingQuoteId(quote.id);
+  setQuoteCustomer(quote.customer);
+  setQuoteSiteCustomer(quote.siteCustomer || "");
+  setQuoteSiteAddressManual(quote.siteAddress || ""); // ✅ ADD THIS LINE
+  setQuoteDescription(quote.description);
+  setQuoteNote(quote.note);
+  setQuoteAmount(quote.amount);
+  setQuoteVatRate(quote.vatRate);
+  setQuoteStatus(quote.status);
+  setActiveSection("quotes");
 
-    requestAnimationFrame(() => {
-      quotesSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+  requestAnimationFrame(() => {
+    quotesSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
     });
-  };
+  });
+};
 
   const updateQuoteStatus = (id: string, status: Quote["status"]) => {
     setQuotes((prev) =>
@@ -3005,13 +3011,18 @@ setInvoices(
                 </option>
               ))}
             </select>
-
-            <input
-              placeholder="Quote description"
-              value={quoteDescription}
-              onChange={(e) => setQuoteDescription(e.target.value)}
-              style={responsiveInput}
-            />
+<textarea
+  placeholder="Site address (manual entry if needed)"
+  value={quoteSiteAddressManual}
+  onChange={(e) => setQuoteSiteAddressManual(e.target.value)}
+  style={{ ...responsiveInput, minHeight: 90, resize: "vertical" }}
+/>
+            <textarea
+  placeholder="Quote description"
+  value={quoteDescription}
+  onChange={(e) => setQuoteDescription(e.target.value)}
+  style={{ ...responsiveInput, minHeight: 120, resize: "vertical" }}
+/>
 
             <textarea
               placeholder="Please note"
