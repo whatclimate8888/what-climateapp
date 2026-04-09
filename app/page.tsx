@@ -802,27 +802,28 @@ export default function Home() {
       : getNextQuoteId().replace("Q-", "");
 
     const quote: QuotePreviewData = {
-      quoteNumber,
-      date: new Date().toLocaleDateString("en-GB"),
-      preparedBy: "Luke Page",
-      customerName: quoteCustomer || "No customer selected",
-      siteAddress: matchedSiteCustomer?.address || "No site address",
-      description: quoteDescription || "No description",
-      note: quoteNote || "Please note:",
-      totalPrice: quoteAmount || "0",
-      vatRate: quoteVatRate,
-    };
+  quoteNumber,
+  date: new Date().toLocaleDateString("en-GB"),
+  preparedBy: "Luke Page",
+  customerName: quoteCustomer || "No customer selected",
+  siteAddress: quoteSiteAddressManual || matchedSiteCustomer?.address || "No site address",
+  description: quoteDescription || "No description",
+  note: quoteNote || "Please note:",
+  totalPrice: quoteAmount || "0",
+  vatRate: quoteVatRate,
+};
 
-    const quoteDraft: QuoteDraft = {
-      quoteCustomer,
-      quoteSiteCustomer,
-      quoteDescription,
-      quoteNote,
-      quoteAmount,
-      quoteVatRate,
-      quoteStatus,
-      editingQuoteId,
-    };
+   const quoteDraft: QuoteDraft = {
+  quoteCustomer,
+  quoteSiteCustomer,
+  quoteSiteAddressManual,
+  quoteDescription,
+  quoteNote,
+  quoteAmount,
+  quoteVatRate,
+  quoteStatus,
+  editingQuoteId,
+}; 
 
     localStorage.setItem("what-climate-quote-draft", JSON.stringify(quoteDraft));
     localStorage.setItem("what-climate-current-quote", JSON.stringify(quote));
